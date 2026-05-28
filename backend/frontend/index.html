@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>创世日记引擎</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f0f0f; color: #e0e0e0; min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 24px 32px; border-bottom: 1px solid #2a2a4a;
+  }
+  .header h1 { font-size: 22px; font-weight: 600; color: #e0c080; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .container { display: flex; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+  .panel {
+    background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 20px; display: flex; flex-direction: column;
+  }
+  .panel-left { flex: 1; min-width: 380px; }
+  .panel-right { flex: 1.5; min-width: 480px; }
+  .panel h2 { font-size: 14px; color: #e0c080; margin-bottom: 10px; font-weight: 500; }
+  textarea {
+    width: 100%; background: #111; border: 1px solid #333;
+    border-radius: 4px; color: #e0e0e0; padding: 10px; font-size: 13px;
+    font-family: inherit; resize: vertical; outline: none;
+  }
+  textarea:focus { border-color: #e0c080; }
+  textarea#world { height: 180px; }
+  textarea#chars { height: 120px; }
+  .row { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
+  .row label { font-size: 13px; color: #aaa; white-space: nowrap; }
+  .row input[type="range"] { flex: 1; accent-color: #e0c080; }
+  .row .val { color: #e0c080; font-size: 14px; min-width: 20px; text-align: center; }
+  .btn {
+    background: #e0c080; color: #111; border: none; border-radius: 4px;
+    padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s; width: 100%;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-secondary {
+    background: #2a2a2a; color: #ccc; border: 1px solid #444;
+    border-radius: 4px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  }
+  .btn-secondary:hover { background: #333; }
+  .status {
+    margin-top: 10px; padding: 8px 12px; border-radius: 4px;
+    font-size: 13px; display: none;
+  }
+  .status.loading { display: block; background: #1a2a1a; color: #8c8; border: 1px solid #2a4a2a; }
+  .status.error { display: block; background: #2a1a1a; color: #c88; border: 1px solid #4a2a2a; }
+  .output-area { flex: 1; min-height: 300px; overflow-y: auto; }
+  .chapter {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .chapter h3 { font-size: 14px; color: #e0c080; margin-bottom: 8px; }
+  .chapter .meta { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .chapter .meta .pass { color: #4a4; }
+  .chapter .meta .fail { color: #c44; }
+  .chapter .text { font-size: 14px; line-height: 1.8; color: #ccc; white-space: pre-wrap; }
+  .empty-state {
+    display: flex; align-items: center; justify-content: center;
+    height: 200px; color: #555; font-size: 14px; text-align: center;
+  }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
+  .toolbar .hint { font-size: 11px; color: #555; margin-left: auto; align-self: center; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>创世日记引擎</h1>
+  <p>让角色在模拟的世界中书写自己的故事</p>
+</div>
+
+<div class="container">
+  <!-- 左侧：设置面板 -->
+  <div class="panel panel-left">
+    <h2>世界观设定</h2>
+    <textarea id="world" placeholder="描述你的世界...
+例如：
+苍澜学院武道世界。
+地点: 演武场、宿舍区、藏书阁
+修炼体系: 炼体→凝气→筑基→金丹"></textarea>
+
+    <h2 style="margin-top:14px;">角色设定</h2>
+    <textarea id="chars" placeholder="每行一个角色...
+例如：
+林北辰, 16岁, 外门弟子, 沉默寡言但意志坚定
+赵无极, 18岁, 内门弟子, 嚣张跋扈
+苏晚晴, 17岁, 内门天才, 表面高傲内心善良"></textarea>
+
+    <div class="row">
+      <label>章节数</label>
+      <input type="range" id="chapters" min="1" max="5" value="3">
+      <span class="val" id="chaptersVal">3</span>
+      <label style="margin-left:12px;">精细度</label>
+      <input type="range" id="beats" min="1" max="5" value="3">
+      <span class="val" id="beatsVal">3</span>
+    </div>
+
+    <button class="btn" id="runBtn" onclick="run()">开始模拟</button>
+    <div class="status" id="status"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button class="btn-secondary" onclick="loadDemo()">加载示例</button>
+      <button class="btn-secondary" onclick="clearAll()">清空</button>
+      <span class="hint">LLM API 需在 .env 中配置</span>
+    </div>
+  </div>
+
+  <!-- 右侧：输出面板 -->
+  <div class="panel panel-right">
+    <h2>故事输出</h2>
+    <div class="output-area" id="output">
+      <div class="empty-state">点击"开始模拟"生成故事</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEMO_WORLD = `苍澜学院武道世界。
+地点:
+- 演武场: 学生日常训练和比试的广场
+- 宿舍区: 学生住宿区
+- 藏书阁: 珍藏功法典籍的阁楼
+修炼体系: 炼体→凝气→筑基
+势力:
+- 赵家: 苍澜城大家族，势力庞大`;
+
+const DEMO_CHARS = `林北辰, 16岁, 外门弟子, 黄级灵根, 沉默寡言但意志坚定, 很想进入内门证明自己
+赵无极, 18岁, 内门弟子, 地级灵根, 嚣张跋扈, 家族势力大, 喜欢欺压外门弟子
+苏晚晴, 17岁, 内门天才, 地级灵根, 表面高傲内心善良，对林北辰似有宿缘`;
+
+document.getElementById('chapters').addEventListener('input', e => {
+  document.getElementById('chaptersVal').textContent = e.target.value;
+});
+document.getElementById('beats').addEventListener('input', e => {
+  document.getElementById('beatsVal').textContent = e.target.value;
+});
+
+function loadDemo() {
+  document.getElementById('world').value = DEMO_WORLD;
+  document.getElementById('chars').value = DEMO_CHARS;
+}
+
+function clearAll() {
+  document.getElementById('world').value = '';
+  document.getElementById('chars').value = '';
+  document.getElementById('output').innerHTML = '<div class="empty-state">点击"开始模拟"生成故事</div>';
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+
+async function run() {
+  const btn = document.getElementById('runBtn');
+  const world = document.getElementById('world').value.trim();
+  const charsText = document.getElementById('chars').value.trim();
+  const chapters = parseInt(document.getElementById('chapters').value);
+  const beats = parseInt(document.getElementById('beats').value);
+
+  if (!world) { setStatus('请输入世界观设定', 'error'); return; }
+  const chars = charsText.split('\n').map(s => s.trim()).filter(Boolean);
+  if (chars.length < 2) { setStatus('至少需要 2 个角色', 'error'); return; }
+
+  btn.disabled = true;
+  setStatus('模拟进行中... (每章约需 1-3 分钟)', 'loading');
+  document.getElementById('output').innerHTML = '<div class="empty-state">⏳ 生成中...</div>';
+
+  try {
+    const res = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world, chars, chapters, beats }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '请求失败');
+
+    let html = '';
+    data.chapters.forEach(ch => {
+      const mark = ch.quality_passed ? '<span class="pass">✅ 通过</span>' : '<span class="fail">❌ 未通过</span>';
+      html += `<div class="chapter">
+        <h3>第 ${ch.number} 章</h3>
+        <div class="meta">${ch.word_count} 字 | 质量评分 ${ch.quality}/80 ${mark}</div>
+        <div class="text">${ch.text}</div>
+      </div>`;
+    });
+    html += `<div style="text-align:center;color:#666;font-size:13px;padding:8px;">
+      共 ${data.total_words} 字 | 平均质量 ${Math.round(data.quality_scores.reduce((a,b)=>a+b,0)/data.quality_scores.length)}/80
+    </div>`;
+    document.getElementById('output').innerHTML = html;
+    setStatus('', '');
+  } catch (e) {
+    setStatus('❌ ' + e.message, 'error');
+    document.getElementById('output').innerHTML = '<div class="empty-state">模拟失败，请检查控制台</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

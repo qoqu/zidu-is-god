@@ -35,6 +35,19 @@ python -m app.cli interactive
 python -m app.cli run --world world.txt --chars chars.txt --chapters 3 --output story.txt
 ```
 
+### Web UI 方式
+
+```bash
+# 启动 Web 服务
+zidu-is-god-server
+
+# 然后在浏览器中打开 http://localhost:5001
+```
+
+界面中可以直接编辑世界观和角色设定，调整章节数，点击开始模拟运行。
+
+---
+
 ### Python API 方式
 
 ```python
