@@ -44,6 +44,7 @@ class SimulateRequest(BaseModel):
     chars: list[str]
     chapters: int = 3
     beats: int = 3
+    direction: str = ""
 
 class SimulateResponse(BaseModel):
     chapters: list[dict]

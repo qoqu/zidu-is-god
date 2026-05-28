@@ -24,14 +24,17 @@
   .panel-left { flex: 1; min-width: 380px; }
   .panel-right { flex: 1.5; min-width: 480px; }
   .panel h2 { font-size: 14px; color: #e0c080; margin-bottom: 10px; font-weight: 500; }
+  .panel .sub { font-size: 11px; color: #666; margin-bottom: 6px; }
   textarea {
     width: 100%; background: #111; border: 1px solid #333;
     border-radius: 4px; color: #e0e0e0; padding: 10px; font-size: 13px;
     font-family: inherit; resize: vertical; outline: none;
   }
   textarea:focus { border-color: #e0c080; }
-  textarea#world { height: 180px; }
+  textarea#world { height: 150px; }
   textarea#chars { height: 120px; }
+  textarea#direction { height: 50px; }
+  .input-group { margin-bottom: 12px; }
   .row { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
   .row label { font-size: 13px; color: #aaa; white-space: nowrap; }
   .row input[type="range"] { flex: 1; accent-color: #e0c080; }
@@ -46,8 +49,10 @@
   .btn-secondary {
     background: #2a2a2a; color: #ccc; border: 1px solid #444;
     border-radius: 4px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+    transition: background .15s;
   }
-  .btn-secondary:hover { background: #333; }
+  .btn-secondary:hover { background: #3a3a3a; }
+  .btn-secondary.active { background: #3a3a2a; border-color: #e0c080; color: #e0c080; }
   .status {
     margin-top: 10px; padding: 8px 12px; border-radius: 4px;
     font-size: 13px; display: none;
@@ -68,8 +73,9 @@
     display: flex; align-items: center; justify-content: center;
     height: 200px; color: #555; font-size: 14px; text-align: center;
   }
-  .toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
-  .toolbar .hint { font-size: 11px; color: #555; margin-left: auto; align-self: center; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .toolbar .hint { font-size: 11px; color: #555; align-self: center; }
+  .demo-label { font-size: 11px; color: #666; margin-right: 4px; align-self: center; }
 </style>
 </head>
 <body>
@@ -81,19 +87,31 @@
 <div class="container">
   <!-- 左侧：设置面板 -->
   <div class="panel panel-left">
-    <h2>世界观设定</h2>
-    <textarea id="world" placeholder="描述你的世界...
-例如：
-苍澜学院武道世界。
-地点: 演武场、宿舍区、藏书阁
-修炼体系: 炼体→凝气→筑基→金丹"></textarea>
+    <div class="toolbar">
+      <span class="demo-label">示例:</span>
+      <button class="btn-secondary active" onclick="loadDemo('xianxia')">🏯 修仙</button>
+      <button class="btn-secondary" onclick="loadDemo('urban')">🏙️ 都市</button>
+      <button class="btn-secondary" onclick="loadDemo('fantasy')">🧙 西幻</button>
+      <span class="hint" style="margin-left:auto;">LLM API 需在 .env 中配置</span>
+    </div>
 
-    <h2 style="margin-top:14px;">角色设定</h2>
-    <textarea id="chars" placeholder="每行一个角色...
-例如：
-林北辰, 16岁, 外门弟子, 沉默寡言但意志坚定
-赵无极, 18岁, 内门弟子, 嚣张跋扈
-苏晚晴, 17岁, 内门天才, 表面高傲内心善良"></textarea>
+    <div class="input-group">
+      <h2>世界观设定</h2>
+      <div class="sub">地点 · 势力 · 规则 · 历史 · 修炼体系</div>
+      <textarea id="world" placeholder="描述你的世界...&#10;&#10;可以写: 地点、势力、世界规则、历史背景、修炼体系、当前局势&#10;&#10;例如:&#10;苍澜学院武道世界。&#10;地点: 演武场、藏书阁、后山禁地。&#10;修炼体系: 炼体→凝气→筑基→金丹。&#10;势力: 赵家是苍澜城大族，行事霸道。"></textarea>
+    </div>
+
+    <div class="input-group">
+      <h2>角色设定</h2>
+      <div class="sub">每行一个 · 姓名, 年龄, 身份, 性格, 动机, 秘密</div>
+      <textarea id="chars" placeholder="每行一个角色。可以写: 姓名, 年龄, 身份, 性格, 动机, 秘密&#10;&#10;例如:&#10;林北辰, 16岁, 外门弟子, 沉默寡言但意志坚定, 一心要为家族复仇&#10;赵无极, 18岁, 内门弟子, 嚣张跋扈, 赵家嫡子, 好大喜功"></textarea>
+    </div>
+
+    <div class="input-group">
+      <h2>故事方向 <span style="color:#555;font-weight:400;font-size:12px;">(可选)</span></h2>
+      <div class="sub">你想要的故事走向，PlotDirector 据此规划章节</div>
+      <textarea id="direction" placeholder="例如: 扮猪吃老虎 / 逆袭打脸 / 悬疑探索 / 热血成长 / 悬疑解密 / 友情羁绊&#10;&#10;空着也行，引擎会根据世界观和角色自己判断"></textarea>
+    </div>
 
     <div class="row">
       <label>章节数</label>
@@ -107,10 +125,8 @@
     <button class="btn" id="runBtn" onclick="run()">开始模拟</button>
     <div class="status" id="status"></div>
 
-    <div class="toolbar" style="margin-top:12px;">
-      <button class="btn-secondary" onclick="loadDemo()">加载示例</button>
+    <div class="toolbar" style="margin-top:10px;">
       <button class="btn-secondary" onclick="clearAll()">清空</button>
-      <span class="hint">LLM API 需在 .env 中配置</span>
     </div>
   </div>
 
@@ -124,18 +140,54 @@
 </div>
 
 <script>
-const DEMO_WORLD = `苍澜学院武道世界。
+const DEMOS = {
+  xianxia: {
+    world: `苍澜学院武道世界。
 地点:
 - 演武场: 学生日常训练和比试的广场
-- 宿舍区: 学生住宿区
 - 藏书阁: 珍藏功法典籍的阁楼
-修炼体系: 炼体→凝气→筑基
+- 后山禁地: 隐藏着上古秘宝的神秘区域
+修炼体系: 炼体→凝气→筑基→金丹 (每境分九层)
+灵根: 天地玄黄四等，黄级最差
 势力:
-- 赵家: 苍澜城大家族，势力庞大`;
-
-const DEMO_CHARS = `林北辰, 16岁, 外门弟子, 黄级灵根, 沉默寡言但意志坚定, 很想进入内门证明自己
-赵无极, 18岁, 内门弟子, 地级灵根, 嚣张跋扈, 家族势力大, 喜欢欺压外门弟子
-苏晚晴, 17岁, 内门天才, 地级灵根, 表面高傲内心善良，对林北辰似有宿缘`;
+- 赵家: 苍澜城大族，势力庞大，行事霸道
+- 苍澜学院: 中立武道学府，不问出身`,
+    chars: `林北辰, 16岁, 外门弟子, 黄级灵根, 沉默寡言但意志坚定, 身负家族血仇
+赵无极, 18岁, 内门弟子, 地级灵根, 嚣张跋扈, 赵家嫡子, 好大喜功
+苏晚晴, 17岁, 内门天才, 地级灵根, 表面高傲内心善良, 与林北辰似有宿缘`,
+    direction: "扮猪吃老虎, 逆袭打脸, 从最底层一步步证明自己"
+  },
+  urban: {
+    world: `现代都市异能世界。
+地点:
+- 江城大学: 全国重点大学，表面平静
+- 地下格斗场: 异能者暗中较量的地方
+- 天华集团: 掌控城市经济命脉的庞然大物
+设定:
+- 异能觉醒: 少数人在成年后觉醒特殊能力
+- 灵能等级: F→E→D→C→B→A→S
+- 异能者管理: 国家设有异能管理局，暗中监管`,
+    chars: `陈默, 19岁, 江城大学学生, F级念动力, 性格低调但内心骄傲, 父母失踪成谜
+赵天龙, 21岁, 天华集团继承人, C级强化系异能, 嚣张跋扈, 追求校花柳如烟
+柳如烟, 20岁, 江城大学校花, B级心灵感应, 表面温柔实则有自己的计划`,
+    direction: "都市异能, 从底层崛起, 揭露真相, 热血战斗"
+  },
+  fantasy: {
+    world: `光明大陆西幻世界。
+地点:
+- 圣光城: 光明教廷所在地，大陆信仰中心
+- 暗影沼泽: 黑暗生物盘踞的禁区
+- 龙脊山脉: 巨龙沉睡之地，藏有无尽财宝
+势力:
+- 光明教廷: 统治西方大陆的神权组织，表面光鲜
+- 暗影议会: 被镇压数百年，暗中积蓄力量
+- 龙族: 超然物外，极少干涉凡间事务`,
+    chars: `亚瑟, 18岁, 见习骑士, 正义感极强但过于天真, 父母在龙脊山脉失踪
+莫甘娜, 年龄不详, 神秘女法师, 行事亦正亦邪, 似乎在寻找某样东西
+雷克斯, 35岁, 暗影议会刺客大师, 冷酷无情, 但对弱小者有一丝恻隐之心`,
+    direction: "光明与黑暗的较量, 真相远非表面那么简单"
+  }
+};
 
 document.getElementById('chapters').addEventListener('input', e => {
   document.getElementById('chaptersVal').textContent = e.target.value;
@@ -144,14 +196,21 @@ document.getElementById('beats').addEventListener('input', e => {
   document.getElementById('beatsVal').textContent = e.target.value;
 });
 
-function loadDemo() {
-  document.getElementById('world').value = DEMO_WORLD;
-  document.getElementById('chars').value = DEMO_CHARS;
+function loadDemo(type) {
+  const demo = DEMOS[type];
+  if (!demo) return;
+  document.getElementById('world').value = demo.world;
+  document.getElementById('chars').value = demo.chars;
+  document.getElementById('direction').value = demo.direction || '';
+  // 高亮当前示例按钮
+  document.querySelectorAll('.demo-label ~ .btn-secondary').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
 function clearAll() {
   document.getElementById('world').value = '';
   document.getElementById('chars').value = '';
+  document.getElementById('direction').value = '';
   document.getElementById('output').innerHTML = '<div class="empty-state">点击"开始模拟"生成故事</div>';
 }
 
@@ -165,6 +224,7 @@ async function run() {
   const btn = document.getElementById('runBtn');
   const world = document.getElementById('world').value.trim();
   const charsText = document.getElementById('chars').value.trim();
+  const direction = document.getElementById('direction').value.trim();
   const chapters = parseInt(document.getElementById('chapters').value);
   const beats = parseInt(document.getElementById('beats').value);
 
@@ -177,10 +237,13 @@ async function run() {
   document.getElementById('output').innerHTML = '<div class="empty-state">⏳ 生成中...</div>';
 
   try {
+    const body = { world, chars, chapters, beats };
+    if (direction) body.direction = direction;
+    
     const res = await fetch('/api/simulate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ world, chars, chapters, beats }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || '请求失败');

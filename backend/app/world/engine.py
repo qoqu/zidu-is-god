@@ -178,8 +178,7 @@ class WorldEngine:
             env["events"] = [e["title"] + ": " + e["description"] for e in active_events[:2]]
 
         # ★★★ 世界行动者 (按角色影响力层级过滤)
-        if "char_influence" in kwargs:
-            visible = self.actors.visible_events_for(kwargs["char_influence"])
+        # actor 感知由 perception.py 直接调用 actors.visible_events_for
             if visible:
                 env["world_affairs"] = visible[-3:]
 
