@@ -14,8 +14,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/zidu-is-god"
-Repository = "https://github.com/your-username/zidu-is-god.git"
+Homepage = "https://github.com/qoqu/zidu-is-god"
+Repository = "https://github.com/qoqu/zidu-is-god.git"
 
 [project.scripts]
 zidu-is-god = "app.cli:main"
