@@ -1,0 +1,227 @@
+# Zidu is God — 架构设计文档
+
+## 一、核心理念
+
+基于多智能体模拟的小说叙事引擎。角色（Agent）在虚拟世界中自由交互，剧情导演（PlotDirector）把控宏观节奏，叙事者（Narrator）将事件序列转化为小说文本。
+
+**不是**：传统 LLM 写小说工具  
+**是**：角色自主决策 + 剧情涌现的模拟驱动叙事系统
+
+## 二、核心设计原则
+
+1. **涌现优先，导演掌舵** — Agent 自由决策产生细节，PlotDirector 只控大方向
+2. **叙事层分离** — 模拟产生事件序列 → Narrator 转为小说文本，两层解耦
+3. **张力驱动 + 情绪驱动** — 外部剧情由张力曲线控制，内部角色由情绪驱动
+4. **每个角色都是自己故事的主角** — 配角也有高光时刻
+5. **质量内建于引擎** — 质量规则硬编码强制执行
+6. **伏笔/悬念是一等公民**
+
+## 三、架构总览
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    世界自主演化层 (WorldEngine)                │
+│  每 Tick 自动运行, 不受角色是否在场影响:                       │
+│  ├─ 天气系统 — 晴/雨/雪/灵气潮汐, 影响体力/修炼/情绪         │
+│  ├─ 谣言系统 — 事件→传播→发酵 → 角色被动接收                 │
+│  ├─ 世界行动者 — 独立于主角的顶层势力, 自主行动               │
+│  ├─ 随机事件 — 天灾/奇遇/势力冲突/庆典                       │
+│  ├─ 毁灭威胁 — 7 条并行末日线, 高影响力角色加速/减缓          │
+│  └─ 时间推进 — 每 Tick = 1 天, 自动推进                      │
+└──────────────────────────┬───────────────────────────────────┘
+                           │ 世界事件注入
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                   多线并行引擎 (ParallelEngine)                │
+│  同时维护最多 5 条叙事线, 按 POV 调度切换:                    │
+│  ├─ 高张力线优先获得 POV                                     │
+│  ├─ 防饿死: 没有线被长期忽略                                 │
+│  ├─ split: 角色分头行动 → 分裂为两条线                       │
+│  └─ merge: 不同线角色相遇 → 自动合并                         │
+└──────────────────────────┬───────────────────────────────────┘
+                           │ 多线事件流
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  叙事引擎 (Engine) — 核心循环                 │
+│  每 Beat 六步:                                               │
+│  1. 场景组装 → 2. 角色感知 → 3. LLM 决策 →                  │
+│  4. 行动解析 → 5. 世界更新 → 6. 事件记录                    │
+│                                                              │
+│  动空间: DIALOGUE / TRADE / EXPLORE / REST / HEAL /          │
+│          CULTIVATE / OBSERVE / INNER / ACT / WAIT            │
+│                                                              │
+│  因果链: 每个事件记录 because→therefore                       │
+│  记忆: 每 Beat 自动存入, 四层分级 (working/short/long/core)  │
+│  执念: 角色永远忘不掉的东西, 永不衰减, 永远在 prompt 第一条   │
+│                                                              │
+│  Beat ~ 200-500 字, ~15 Beat = 1 章                           │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ EventLog
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│             剧情导演 (PlotDirector)                           │
+│  ├─ 章前: 设定张力曲线 + 催化剂池 + 风险备忘                  │
+│  ├─ 每 Beat: 检查张力, 偏离时注入催化剂                       │
+│  ├─ 章后: 更新伏笔池/情绪曲线/StatusCard/快照                  │
+│  └─ 催化剂类型: 威胁升级/秘密揭示/新角色入场/反转/喘息        │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ 事件序列
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│             叙事生成 (Narrator)                               │
+│  ├─ 事件序列 → 小说段落 (每 Beat, 带前文上下文)               │
+│  ├─ 多线交织: POV 线优先, 其他线用"=== 与此同时 ===" 切换    │
+│  ├─ 角色名映射: 确保名字一致性                               │
+│  └─ 输出后过质量检查                                          │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ 章节文本
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│             质量门禁 (QualityChecker)                         │
+│  80 分八维度评分: 开头/情节/人物/对话/悬念/节奏/展示/语言     │
+│  ≥48/80 通过, <48 触发重写                                   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## 四、角色模型
+
+```
+Character:
+├─ identity: 年龄/外貌/职业
+├─ personality: 特质/说话风格/决策偏向
+├─ motivation: 深层欲望/短期目标/恐惧
+├─ growth_arc: 成长弧线 (起点→终点→进度)
+├─ relationships: 非对称关系网络
+│
+├─ emotional_state: 两层情绪系统
+│   ├─ mood (心境): 跨章延续, 每章变化一次
+│   └─ emotion (即时): valence/arousal, 每 Beat 更新
+│
+├─ memory: 四层记忆系统
+│   ├─ working: 最近 3~5 Beat, 完整细节
+│   ├─ short_term: 本章内, 有情绪标记
+│   ├─ long_term: 跨章, 按重要性排序, 会衰减
+│   └─ core: 永不遗忘的关键事件
+│
+├─ obsessions: 执念列表
+│   └─ 角色永远忘不掉的东西 (grudge/goal/trauma/love/secret)
+│      永不衰减, 永远出现在决策 prompt 第一条
+│
+├─ stats: 数值系统
+│   ├─ hp / stamina / wealth / reputation / cultivation
+│   ├─ injuries: 部位/严重度/恢复
+│   ├─ needs: 休息/安全/社交/成就 (驱动行为)
+│   ├─ ledger: 资源账本 (物品/装备生命周期)
+│   └─ influence: 六维影响力 (economic/political/military/
+│                   knowledge/social/mystical)
+│      每个维度独立, 影响世界的方式完全不同
+│
+├─ skills: 能力数值
+└─ secrets: 隐藏信息
+```
+
+## 五、世界模型
+
+```
+WorldEngine (每 Tick = 1 天):
+├─ WeatherSystem: 8 种天气 × 4 季权重
+├─ RumorSystem: 传播/消散, 高权重角色谣言传得更快
+├─ WorldActorSystem: 独立于主角的顶层势力
+│   ├─ 由 WorldBuilder 根据世界观 LLM 生成
+│   ├─ 也支持用户自定义配置
+│   ├─ 按 tick_interval 自主行动
+│   └─ 角色按影响力层级感知 (低层看不到顶层博弈)
+├─ WorldEventGenerator: 天灾/奇遇/势力冲突/庆典
+├─ WorldThreatSystem: 7 条并行末日线
+│   ├─ 日常缓慢增长, 高影响力角色加速/减缓
+│   ├─ 达到阈值触发灾难
+│   └─ 一条触发可能级联触发其他
+└─ Timeline: 自动推进, 每 Beat 半个时辰
+```
+
+## 六、数据流
+
+```
+世界观 + 角色设定
+       │
+WorldBuilder ──→ World + Actors
+CharacterGenerator ──→ Characters (含记忆/执念/影响力)
+       │
+PlotDirector.plan_chapter() ──→ ChapterBlueprint
+       │
+Engine.run_chapter() (或 run_parallel_chapter)
+  └─ 每 Beat: 时间推进 → 世界 Tick → 场景组装
+     → Agent 感知(含天气/传闻/威胁/天下大事/记忆/执念)
+     → LLM 决策(含需求/状态/情绪约束)
+     → 冲突解析 + 因果链记录
+     → 世界更新 + 记忆存储 + 情绪更新
+       │
+Narrator.narrate_chapter() ──→ 章节文本
+       │
+QualityChecker.check() ──→ 80 分评分报告
+       │
+SnapshotManager.save() ──→ 版本化快照 (支持回滚)
+```
+
+## 七、技术栈
+
+| 层 | 技术 |
+|----|------|
+| 后端 | Python 3.11+ |
+| LLM | OpenAI SDK (多供应商兼容) |
+| 存储 | SQLite (MVP) / PostgreSQL+pgvector (生产) |
+| 通信 | CLI / Python API / HTTP (可选) |
+| 部署 | pip install / Docker (可选) |
+
+## 八、目录结构
+
+```
+zidu-is-god/
+├── backend/
+│   ├── app/
+│   │   ├── cli.py              # CLI 入口 (zidu-is-god 命令)
+│   │   ├── core.py             # 一键 API (simulate())
+│   │   ├── config.py           # 配置
+│   │   ├── world/              # 世界模型
+│   │   │   ├── schema.py       # 地点/势力/规则
+│   │   │   ├── builder.py      # LLM 解析世界观
+│   │   │   ├── engine.py       # 世界自主演化引擎
+│   │   │   ├── weather.py      # 天气系统
+│   │   │   ├── rumors.py       # 谣言系统
+│   │   │   ├── events.py       # 随机事件
+│   │   │   ├── threats.py      # 毁灭威胁
+│   │   │   └── actors.py       # 世界行动者
+│   │   ├── characters/         # 角色模型
+│   │   │   ├── schema.py       # 角色/情绪/影响力/资源账本
+│   │   │   ├── memory.py       # 四层记忆 + 执念
+│   │   │   └── generator.py    # LLM 角色生成
+│   │   ├── engine/             # 叙事引擎
+│   │   │   ├── simulation.py   # 核心循环
+│   │   │   ├── perception.py   # 环境感知
+│   │   │   ├── deliberation.py # LLM 决策
+│   │   │   ├── actions.py      # 行动解析 + 冲突
+│   │   │   ├── events.py       # 事件模型 + 快照
+│   │   │   ├── parallel.py     # 多线并行
+│   │   │   └── environment.py  # 环境交互
+│   │   ├── plot/               # 剧情导演
+│   │   │   ├── director.py     # 导演主逻辑
+│   │   │   ├── tension.py      # 张力计算
+│   │   │   ├── catalysts.py    # 催化剂
+│   │   │   ├── foreshadowing.py # 伏笔池
+│   │   │   ├── emotion_curve.py # 情绪曲线
+│   │   │   ├── risk_registry.py # 风险备忘
+│   │   │   └── status_card.py  # 章间状态
+│   │   ├── narrator/           # 叙事生成
+│   │   │   ├── narrator.py     # 事件→小说文本
+│   │   │   └── quality.py      # 80 分质量检查
+│   │   └── llm/
+│   │       └── client.py       # LLM 客户端
+│   ├── pyproject.toml
+│   └── requirements.txt
+├── examples/                   # 示例输入
+├── LICENSE                     # AGPL-3.0
+├── README.md
+├── ARCHITECTURE.md
+├── CONTRIBUTORS.md
+└── .gitignore
+```

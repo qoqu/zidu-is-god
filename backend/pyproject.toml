@@ -1,0 +1,29 @@
+[project]
+name = "zidu-is-god"
+version = "0.1.0"
+description = "创世日记引擎 — 让角色在模拟的世界中书写自己的故事"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0" }
+authors = [
+    { name = "创世日记引擎 contributors" },
+]
+dependencies = [
+    "openai>=1.0.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/zidu-is-god"
+Repository = "https://github.com/your-username/zidu-is-god.git"
+
+[project.scripts]
+zidu-is-god = "app.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

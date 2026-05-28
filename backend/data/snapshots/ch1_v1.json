@@ -1,0 +1,25 @@
+{
+  "chapter": 1,
+  "version": 1,
+  "timestamp": "2026-05-28T23:25:02.669378",
+  "world_state": {
+    "locations": {
+      "l1": "地点"
+    },
+    "time": "",
+    "global_state": {}
+  },
+  "character_states": {
+    "c1": {
+      "name": "测试",
+      "location": "",
+      "hp": 100,
+      "stamina": 100,
+      "wealth": 0,
+      "cultivation": 10,
+      "injuries": 0,
+      "memory_count": 0,
+      "obsessions": []
+    }
+  }
+}
