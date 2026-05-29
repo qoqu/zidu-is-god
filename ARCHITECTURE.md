@@ -225,6 +225,30 @@ Timeline:
 └─ context_for(chapter)            # 前情提要
 ```
 
+### 7.5 WorldBuilder 扩展生成 (v0.6.0)
+
+WorldBuilder 不仅能解析世界观, 还能根据世界观用 LLM 生成:
+
+| 方法 | 生成内容 | 消费方 |
+|------|---------|--------|
+| build_actions() | 本世界特有的行为类型 | deliberation.py → 角色决策 prompt |
+| build_weather() | 本世界的天气系统 | world/weather.py |
+| build_threats() | 本世界的毁灭威胁 | world/threats.py |
+| build_events() | 本世界的随机事件池 | world/events.py |
+
+数据存入 `world.extras`, 子系统优先使用生成的数据, 没有则回退硬编码默认值。
+
+### 7.6 可配置参数 (v0.6.0)
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| QUALITY_PASS | 48 | 质量门禁及格线 |
+| TENSION_DANGER_WEIGHT | 0.3 | 张力计算:危险权重 |
+| TENSION_EMOTION_WEIGHT | 0.25 | 张力计算:情绪权重 |
+| PARALLEL_LINES | 5 | 最大并行线数 |
+| BEATS_PER_POV | 3 | POV 切换频率 |
+| BATCH_NARRATE | 3 | 叙事批次大小 |
+
 ### 7.2 小说解析器 (novel_parser.py)
 
 从一本小说 txt 中提取结构化世界数据，用于同人创作。

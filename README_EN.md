@@ -68,6 +68,14 @@ print(result["chapters"][0]["text"])
 | **Save/Load** | Full state persistence, supports story rollback |
 
 
+### v0.6.0
+
+| Feature | Description |
+|---------|-------------|
+| **Extensible Actions** | LLM generates world-specific actions (Cultivate/Work/Drive...) |
+| **World Rules from LLM** | Weather, threats, events generated from world description |
+| **Configurable Params** | 7 env vars for tuning thresholds without code changes |
+
 ### v0.5.0
 
 | Feature | Description |
