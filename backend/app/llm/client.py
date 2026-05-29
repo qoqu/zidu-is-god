@@ -60,6 +60,11 @@ class LLMClient:
             raise LLMError(f"无法初始化 LLM 客户端: {e}")
 
     def _is_retryable(self, e: Exception) -> bool:
+        # 不重试权限错误 (配额耗尽/API Key 无效)
+        if 'PermissionDeniedError' in type(e).__name__ or 'Forbidden' in type(e).__name__:
+            return False
+        if hasattr(e, 'status_code') and e.status_code == 403:
+            return False
         """是否可以重试的错误类型"""
         return isinstance(e, (RateLimitError, APITimeoutError, APIConnectionError,
                               APIStatusError))

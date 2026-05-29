@@ -127,9 +127,28 @@
     </div>
 
     <div class="input-group">
-      <h2>角色设定</h2>
-      <div class="sub">每行一个 · 姓名, 年龄, 身份, 性格, 动机, 秘密</div>
-      <textarea id="chars" placeholder="每行一个角色。可以写: 姓名, 年龄, 身份, 性格, 动机, 秘密&#10;&#10;例如:&#10;林北辰, 16岁, 外门弟子, 沉默寡言但意志坚定, 一心要为家族复仇&#10;赵无极, 18岁, 内门弟子, 嚣张跋扈, 赵家嫡子, 好大喜功"></textarea>
+      <h2>角色设定 <span style="color:#555;font-weight:400;font-size:12px;">主要角色</span></h2>
+      <div class="sub">主角/女主/重要角色 · 姓名, 年龄, 身份, 性格, 动机</div>
+      <textarea id="chars_hero" placeholder="每行一个主要角色...
+例如:
+林北辰, 16岁, 外门弟子, 沉默寡言但意志坚定, 一心要为家族复仇
+苏晚晴, 17岁, 内门天才, 表面高傲内心善良"></textarea>
+    </div>
+    <div class="input-group">
+      <h2 style="font-size:13px;color:#a0a0a0;">配角</h2>
+      <div class="sub">盟友/导师/友人 · 姓名, 身份, 性格</div>
+      <textarea id="chars_support" placeholder="每行一个配角...
+例如:
+陈长老, 传功长老, 明察秋毫
+铁锤, 矮人锻造大师, 性格豪爽"></textarea>
+    </div>
+    <div class="input-group">
+      <h2 style="font-size:13px;color:#a0a0a0;">反派</h2>
+      <div class="sub">对手/敌人/障碍 · 姓名, 身份, 动机</div>
+      <textarea id="chars_villain" placeholder="每行一个反派...
+例如:
+赵无极, 内门弟子, 嚣张跋扈, 赵家嫡子
+暗影议长, 身份神秘, 图谋不轨"></textarea>
     </div>
 
     <div class="input-group">
@@ -140,10 +159,10 @@
 
     <div class="row">
       <label>章节数</label>
-      <input type="range" id="chapters" min="1" max="5" value="3">
+      <input type="range" id="chapters" min="1" max="20" value="3">
       <span class="val" id="chaptersVal">3</span>
       <label style="margin-left:12px;">精细度</label>
-      <input type="range" id="beats" min="1" max="5" value="3">
+      <input type="range" id="beats" min="1" max="8" value="3">
       <span class="val" id="beatsVal">3</span>
     </div>
 
@@ -215,6 +234,21 @@ const DEMOS = {
   }
 };
 
+document.getElementById('cfgNarratorTemp').addEventListener('input', e => {
+  document.getElementById('narratorTempVal').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('cfgQualityPass').addEventListener('input', e => {
+  document.getElementById('qualityPassVal').textContent = e.target.value;
+});
+document.getElementById('cfgBatchNarrate').addEventListener('input', e => {
+  document.getElementById('batchNarrateVal').textContent = e.target.value;
+});
+document.getElementById('cfgTensionDanger').addEventListener('input', e => {
+  document.getElementById('tensionDangerVal').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.getElementById('cfgTensionEmotion').addEventListener('input', e => {
+  document.getElementById('tensionEmotionVal').textContent = parseFloat(e.target.value).toFixed(2);
+});
 document.getElementById('chapters').addEventListener('input', e => {
   document.getElementById('chaptersVal').textContent = e.target.value;
 });
@@ -226,7 +260,9 @@ function loadDemo(type) {
   const demo = DEMOS[type];
   if (!demo) return;
   document.getElementById('world').value = demo.world;
-  document.getElementById('chars').value = demo.chars;
+  document.getElementById('chars_hero').value = demo.chars;
+  document.getElementById('chars_support').value = '';
+  document.getElementById('chars_villain').value = '';
   document.getElementById('direction').value = demo.direction || '';
   // 高亮当前示例按钮
   document.querySelectorAll('.demo-label ~ .btn-secondary').forEach(b => b.classList.remove('active'));
@@ -235,7 +271,7 @@ function loadDemo(type) {
 
 function clearAll() {
   document.getElementById('world').value = '';
-  document.getElementById('chars').value = '';
+  document.getElementById('chars_hero').value = '';
   document.getElementById('direction').value = '';
   document.getElementById('output').innerHTML = '<div class="empty-state">点击"开始模拟"生成故事</div>';
 }
@@ -282,6 +318,16 @@ async function loadLLMConfig() {
     document.getElementById('cfgBaseUrl').value = d.base_url || '';
     document.getElementById('cfgModel').value = d.model || '';
     document.getElementById('cfgTemp').value = d.temperature || 0.7;
+    document.getElementById('cfgNarratorTemp').value = d.narrator_temp || 0.5;
+    document.getElementById('narratorTempVal').textContent = d.narrator_temp || 0.5;
+    document.getElementById('cfgQualityPass').value = d.quality_pass || 48;
+    document.getElementById('qualityPassVal').textContent = d.quality_pass || 48;
+    document.getElementById('cfgBatchNarrate').value = d.batch_narrate || 3;
+    document.getElementById('batchNarrateVal').textContent = d.batch_narrate || 3;
+    document.getElementById('cfgTensionDanger').value = d.tension_danger || 0.3;
+    document.getElementById('tensionDangerVal').textContent = (d.tension_danger || 0.3).toFixed(2);
+    document.getElementById('cfgTensionEmotion').value = d.tension_emotion || 0.25;
+    document.getElementById('tensionEmotionVal').textContent = (d.tension_emotion || 0.25).toFixed(2);
     document.getElementById('cfgStatus').textContent = d.has_key ? '已配置 API Key' : '未配置 API Key';
   } catch(e) { document.getElementById('cfgStatus').textContent = '加载失败'; }
 }
@@ -291,6 +337,11 @@ async function saveLLMConfig() {
     base_url: document.getElementById('cfgBaseUrl').value,
     model: document.getElementById('cfgModel').value,
     temperature: parseFloat(document.getElementById('cfgTemp').value),
+    narrator_temp: parseFloat(document.getElementById('cfgNarratorTemp').value),
+    quality_pass: parseInt(document.getElementById('cfgQualityPass').value),
+    batch_narrate: parseInt(document.getElementById('cfgBatchNarrate').value),
+    tension_danger: parseFloat(document.getElementById('cfgTensionDanger').value),
+    tension_emotion: parseFloat(document.getElementById('cfgTensionEmotion').value),
   };
   try {
     const r = await fetch('/api/llm-config', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -483,6 +534,34 @@ function displayChapters(chapters, totalWords, qualityScores) {
       <div style="display:flex;justify-content:space-between;margin-bottom:12px">
         <button class="btn-secondary" onclick="loadLLMConfig()">读取当前</button>
         <button class="btn-secondary" onclick="testLLMConfig()">测试连接</button>
+      </div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #2a2a2a">
+        <div style="font-size:13px;color:#e0c080;margin-bottom:8px">高级参数</div>
+        <label>叙事温度 (0-2, 越高越有创意)</label>
+        <input type="range" id="cfgNarratorTemp" min="0" max="2" step="0.1" value="0.5" style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:8px">
+          <span>精确</span><span id="narratorTempVal">0.5</span><span>创意</span>
+        </div>
+        <label>质量及格线 (0-80)</label>
+        <input type="range" id="cfgQualityPass" min="30" max="70" value="48" style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:8px">
+          <span>宽松 30</span><span id="qualityPassVal">48</span><span>严格 70</span>
+        </div>
+        <label>叙事批次 (1-5, 越大越快但可能牺牲连贯性)</label>
+        <input type="range" id="cfgBatchNarrate" min="1" max="5" value="3" style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:8px">
+          <span>逐段</span><span id="batchNarrateVal">3</span><span>批量</span>
+        </div>
+        <label>张力 — 危险权重 (0-1)</label>
+        <input type="range" id="cfgTensionDanger" min="0" max="1" step="0.05" value="0.3" style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:8px">
+          <span>0</span><span id="tensionDangerVal">0.30</span><span>1.0</span>
+        </div>
+        <label>张力 — 情绪权重 (0-1)</label>
+        <input type="range" id="cfgTensionEmotion" min="0" max="1" step="0.05" value="0.25" style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:8px">
+          <span>0</span><span id="tensionEmotionVal">0.25</span><span>1.0</span>
+        </div>
       </div>
       <div id="cfgStatus" style="font-size:12px;color:#888;margin-bottom:8px"></div>
       <button class="btn" onclick="saveLLMConfig()">保存配置</button>

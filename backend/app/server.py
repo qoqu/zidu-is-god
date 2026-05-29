@@ -203,6 +203,11 @@ class LLMConfigRequest(BaseModel):
     model: str = ""
     temperature: float = 0.7
     timeout: int = 120
+    narrator_temp: float = 0.5
+    quality_pass: int = 48
+    batch_narrate: int = 3
+    tension_danger: float = 0.3
+    tension_emotion: float = 0.25
 
 
 @app.get("/api/llm-config")
@@ -215,6 +220,11 @@ async def get_llm_config():
         "has_key": bool(Config.LLM_API_KEY),
         "temperature": Config.LLM_TEMPERATURE,
         "timeout": Config.LLM_TIMEOUT,
+        "narrator_temp": Config.NARRATOR_TEMPERATURE,
+        "quality_pass": Config.QUALITY_PASS_THRESHOLD,
+        "batch_narrate": Config.BATCH_NARRATE_SIZE,
+        "tension_danger": Config.TENSION_DANGER_WEIGHT,
+        "tension_emotion": Config.TENSION_EMOTION_WEIGHT,
     }
 
 
@@ -237,6 +247,16 @@ async def set_llm_config(req: LLMConfigRequest):
         Config.LLM_TEMPERATURE = req.temperature
     if req.timeout:
         Config.LLM_TIMEOUT = req.timeout
+    if hasattr(req, 'narrator_temp') and req.narrator_temp:
+        Config.NARRATOR_TEMPERATURE = req.narrator_temp
+    if hasattr(req, 'quality_pass') and req.quality_pass:
+        Config.QUALITY_PASS_THRESHOLD = req.quality_pass
+    if hasattr(req, 'batch_narrate') and req.batch_narrate:
+        Config.BATCH_NARRATE_SIZE = req.batch_narrate
+    if hasattr(req, 'tension_danger') and req.tension_danger:
+        Config.TENSION_DANGER_WEIGHT = req.tension_danger
+    if hasattr(req, 'tension_emotion') and req.tension_emotion:
+        Config.TENSION_EMOTION_WEIGHT = req.tension_emotion
 
     # 写入 .env
     env_path = Path(__file__).parent.parent / ".env"

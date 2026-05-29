@@ -52,6 +52,7 @@ class Engine:
         self.current_chapter = 0
         self.current_beat = 0
         self._init_fog()
+        self._init_pool()
 
     @property
     def all_characters(self) -> list[Character]:
@@ -344,6 +345,12 @@ class Engine:
             return self.all_characters
         return [c for c in self.all_characters if c.current_location == location_id]
 
+    def _init_pool(self):
+        from app.engine.character_pool import CharacterPool
+        pool = CharacterPool(self.all_characters)
+        pool.set_llm(self.llm)
+        self.char_pool = pool
+
     def _init_fog(self):
         world_engine = getattr(self.world, 'world_engine', None)
         if not world_engine or not hasattr(world_engine, 'fog'):
@@ -352,6 +359,25 @@ class Engine:
             world_engine.fog.initialize_char(char.id, char.current_location, char=char)
         if hasattr(world_engine.fog, 'world'):
             world_engine.fog.world._characters = list(self.characters.values())
+
+    def _rotate_cast(self):
+        pool = self.char_pool
+        if not pool:
+            return
+        active = pool.get_active()
+        if len(active) > 2:
+            for c in reversed(active):
+                if c.role != 'primary' and c.id != active[0].id:
+                    pool.mark_dormant(c.id, self.current_chapter)
+                    break
+        if self.current_chapter % 6 == 0:
+            context = f"当前第{self.current_chapter}章. 活跃: " + ", ".join(c.name for c in active)
+            new_char = pool.generate_new(context, active)
+            if new_char:
+                we = getattr(self.world, 'world_engine', None)
+                if we and hasattr(we, 'fog'):
+                    we.fog.initialize_char(new_char.id, new_char.current_location, char=new_char)
+                self.all_characters.append(new_char)
 
     def get_events_since_last_checkpoint(self) -> list[NarrativeEvent]:
         events = []
