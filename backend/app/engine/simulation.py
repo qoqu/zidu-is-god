@@ -74,6 +74,9 @@ class Engine:
         # ★★★ 章后: 记忆固化
         for char in self.all_characters:
             char.memory.consolidate(self.current_chapter)
+        # ★★★ 章后: 传递事件日志给 PlotDirector
+        if hasattr(director, "set_recent_logs"):
+            director.set_recent_logs(chapter_logs)
 
         # 章后: 注册新伏笔
         for fs_desc in blueprint.foreshadowing_to_set:
@@ -132,13 +135,44 @@ class Engine:
         )
 
         recent_events = self.get_events_since_last_checkpoint()
-        from app.engine.deliberation import make_decisions_parallel
-        events = make_decisions_parallel(
-            chars=present_chars, scene=scene, world=self.world, llm=self.llm,
-            constraints=blueprint.active_risk_constraints,
-            recent_events=recent_events,
-            beat_number=beat_num, chapter_number=chapter_num,
-        )
+        
+        # 按角色分级分组
+        primary_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'primary']
+        secondary_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'secondary']
+        background_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'background']
+        
+        events = []
+        
+        # primary: 完整 LLM 决策
+        if primary_chars:
+            from app.engine.deliberation import make_decisions_parallel
+            events = make_decisions_parallel(
+                chars=primary_chars, scene=scene, world=self.world, llm=self.llm,
+                constraints=blueprint.active_risk_constraints,
+                recent_events=recent_events,
+                beat_number=beat_num, chapter_number=chapter_num,
+            )
+        
+        # secondary: 简化 LLM 决策 (缩减 prompt)
+        if secondary_chars:
+            from app.engine.deliberation import make_decisions_parallel
+            sec_events = make_decisions_parallel(
+                chars=secondary_chars, scene=scene, world=self.world, llm=self.llm,
+                constraints=blueprint.active_risk_constraints + ["(精简回复, 不超过20字)"],
+                recent_events=recent_events,
+                beat_number=beat_num, chapter_number=chapter_num,
+            )
+            events.extend(sec_events)
+        
+        # background: 自动生成默认行为 (不调 LLM)
+        for char in background_chars:
+            from app.engine.events import NarrativeEvent
+            events.append(NarrativeEvent(
+                beat_number=beat_num, chapter_number=chapter_num,
+                time=self.world.timeline.current_time, location=location_id,
+                agent_id=char.id, action_type="WAIT",
+                outcome=f"{char.name}在附近活动", importance=1,
+            ))
 
         resolved = resolve_actions(events, self.characters, self.world)
 

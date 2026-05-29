@@ -53,6 +53,21 @@ def build_perception(
     world: World,
     recent_events: list[NarrativeEvent] = None,
 ) -> str:
+    # 背景角色: 极简感知
+    if getattr(char, 'role', 'primary') == 'background':
+        return f"你身处 {scene.get('location_name', '未知')}。时间是 {scene.get('time', '')}。"
+
+    # 次要角色: 精简感知 (不包含传闻/天下大事)
+    if getattr(char, 'role', 'primary') == 'secondary':
+        lines = [f"你身处 {scene['location_name']}。"]
+        lines.append(f"时间是 {scene['time']}。")
+        others = [c for c in scene["present_chars"] if c["id"] != char.id]
+        if others:
+            lines.append(f"在场: {', '.join(o['name'] for o in others)}。")
+        if hasattr(char, 'stats'):
+            lines.append(f"状态: {char.stats.status_summary()}")
+        lines.append(char.emotional_state.format_for_prompt())
+        return "\n".join(lines)
     """为单个角色构建感知文本（直接拼入 prompt）"""
     lines = []
     lines.append(f"你身处 {scene['location_name']}。{scene['location_desc']}")

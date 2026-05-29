@@ -18,7 +18,7 @@ CharacterGenerator — LLM 从角色设定生成完整的 Character 对象
 """
 
 from typing import Optional
-from app.characters.schema import (
+from app.characters.schema import (CharacterRole,
     Character, CharIdentity, CharPersonality, CharMotivation,
     GrowthArc, EmotionalState, Influence,
 )

@@ -142,6 +142,9 @@ class PlotDirector:
 
     def finish_chapter(self, chapter_num: int, avg_tension: float):
         """本章结束后的收尾工作"""
+        # ★★★ 角色升降级 (根据剧情关注度动态调整)
+        self._adjust_roles(chapter_num)
+
         # 更新情绪曲线
         emotion_label = self.status_card.chapter_type
         self.emotion_curve.add_record(ChapterEmotionRecord(
@@ -149,6 +152,50 @@ class PlotDirector:
             emotion_label=emotion_label or "燃",
             intensity=int(avg_tension * 10),
         ))
+
+    def _adjust_roles(self, chapter_num: int):
+        """根据剧情关注度动态调整角色级别"""
+        from app.characters.schema import CharacterRole
+        chars = self.characters.values()
+
+        # 统计每个角色在最近事件中出现的频率
+        event_counts = {}
+        for blog in getattr(self, '_recent_logs', []):
+            for ev in getattr(blog, 'events', []):
+                cid = getattr(ev, 'agent_id', None)
+                if cid:
+                    event_counts[cid] = event_counts.get(cid, 0) + 1
+
+        if not event_counts:
+            return
+
+        avg_count = sum(event_counts.values()) / max(len(event_counts), 1)
+
+        for char in chars:
+            cid = char.id
+            count = event_counts.get(cid, 0)
+            current_role = getattr(char, 'role', CharacterRole.PRIMARY)
+
+            # 长期不活跃 → 降级
+            if current_role == CharacterRole.PRIMARY and count < avg_count * 0.3:
+                if chapter_num > 3:  # 前三章不降级
+                    char.role = CharacterRole.SECONDARY
+
+            # 活跃度提升 → 升级
+            elif current_role == CharacterRole.SECONDARY and count > avg_count * 1.5:
+                char.role = CharacterRole.PRIMARY
+
+            # background → secondary (如果参与了事件)
+            elif current_role == CharacterRole.BACKGROUND and count > 0:
+                char.role = CharacterRole.SECONDARY
+
+    # ★★★ 为 PlotDirector 添加事件日志引用
+    @property
+    def _recent_logs(self):
+        return getattr(self, '_event_log', [])
+    
+    def set_recent_logs(self, logs):
+        self._event_log = logs[-5:]  # 只保留最近 5 Beat
 
         # 角色情绪沉淀
         for char in self.characters.values():

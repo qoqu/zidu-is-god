@@ -21,6 +21,35 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
+# ─── 角色分级 ───────────────────────────────────────────────
+
+class CharacterRole:
+    """角色分级 — 决定 LLM 资源的分配方式
+    
+    primary (主要角色):
+        - 每 Beat 调 LLM 做完整决策
+        - 完整记忆/情绪/需求/影响力
+        - 有自己的 POV 和高光时刻
+        - 上限: 3-5 个
+    
+    secondary (次要角色):
+        - 只在有 primary 角色在场时调 LLM
+        - 精简记忆 (只记录关键事件)
+        - 简化状态追踪 (不做完整需求计算)
+        - 可以被 PlotDirector 升级为 primary
+        - 上限: 5-10 个
+    
+    background (背景角色):
+        - 从不调 LLM
+        - 只记录位置/基本状态
+        - 由 Narrator 自动生成背景行为
+        - 用于填充世界, 让世界感觉"有人"
+        - 上限: 不限
+    """
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    BACKGROUND = "background"
+
 # ─── 情绪系统 ───────────────────────────────────────────────
 
 @dataclass
@@ -446,7 +475,8 @@ class Character:
         self.secrets: list = []                # 角色不知道但系统知道的信息
         self.discovered_secrets: list = []     # 已发现的秘密
         self.emotional_state: EmotionalState = EmotionalState()
-        self.stats: CharacterStats = CharacterStats()   # ★★★ 新增
+        self.stats: CharacterStats = CharacterStats()
+        self.role: str = CharacterRole.PRIMARY      # 角色分级
         self.current_location: str = ""
         self.current_goals: list = []          # [Goal]
         self.status_effects: list = []         # [StatusEffect]
