@@ -53,7 +53,7 @@ print(result["chapters"][0]["text"])
 
 ## Features
 
-### v0.4.0
+### v0.3.0
 
 | Feature | Description |
 |---------|-------------|
