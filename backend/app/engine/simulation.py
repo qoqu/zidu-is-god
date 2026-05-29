@@ -30,7 +30,7 @@ from app.plot.director import PlotDirector
 from app.llm.client import LLMClient
 from app.world.engine import WorldEngine
 from app.engine.parallel import ParallelEngine
-from app.engine.environment import EnvironmentInteraction
+from app.engine.actions import EnvironmentInteraction
 
 
 class Engine:
@@ -349,7 +349,7 @@ class Engine:
         if not world_engine or not hasattr(world_engine, 'fog'):
             return
         for char in self.all_characters:
-            world_engine.fog.initialize_char(char.id, char.current_location)
+            world_engine.fog.initialize_char(char.id, char.current_location, char=char)
         if hasattr(world_engine.fog, 'world'):
             world_engine.fog.world._characters = list(self.characters.values())
 

@@ -150,8 +150,14 @@ class WorldFogManager:
             self.fog_maps[char_id] = FogMap(char_id=char_id)
         return self.fog_maps[char_id]
 
-    def initialize_char(self, char_id: str, location_id: str):
-        """角色初始出生点 — 点亮所在地及周边"""
+    def initialize_char(self, char_id: str, location_id: str, char=None):
+        """角色初始出生点 — 按身份点亮认知地图
+        
+        Args:
+            char_id: 角色 id
+            location_id: 出生地点
+            char: Character 对象 (含 identity/occupation/influence)
+        """
         fog = self.get_fog(char_id)
         # 出生点: 完全熟悉
         fog.discover_location(location_id, FogState.VISITED)
@@ -163,6 +169,49 @@ class WorldFogManager:
                 fog.discover_location(nearby, FogState.HEARD_OF)
 
         # 本地势力: 听说
+        for fid, fac in getattr(self.world, 'factions', {}).items():
+            if hasattr(fac, 'home_location') and fac.home_location == location_id:
+                fog.discover_faction(fid, FogState.HEARD_OF)
+
+        # ★★★ 按角色身份扩展初始知识
+        if char is None:
+            return
+
+        occ = (char.identity.occupation or "").lower()
+        concept = (char.name or "").lower()
+
+        # 高政治身份 → 知道王国/教廷等大势力
+        if char.stats.influence.political >= 30:
+            for fid, fac in getattr(self.world, 'factions', {}).items():
+                fog.discover_faction(fid, FogState.HEARD_OF)
+            # 知道重要地点
+            for lid, loc in getattr(self.world, 'locations', {}).items():
+                if getattr(loc, 'importance', 3) >= 4:  # 重要地点
+                    fog.discover_location(lid, FogState.HEARD_OF)
+
+        # 高知识身份 → 知道传说/秘闻
+        if char.stats.influence.knowledge >= 30:
+            for lid, loc in getattr(self.world, 'locations', {}).items():
+                if getattr(loc, 'importance', 3) >= 3:
+                    fog.discover_location(lid, FogState.HEARD_OF)
+
+        # 高社交身份 → 听说各路消息
+        if char.stats.influence.social >= 20:
+            for fid in getattr(self.world, 'factions', {}):
+                fog.discover_faction(fid, FogState.HEARD_OF)
+
+        # 商人 → 知道商路/城市
+        if any(w in occ for w in ["商", "贾", "贸易"]):
+            for lid, loc in getattr(self.world, 'locations', {}).items():
+                if getattr(loc, 'type', '') in ("city", "town", "market"):
+                    fog.discover_location(lid, FogState.HEARD_OF)
+
+        # 学者/法师 → 知道隐秘之地
+        if any(w in occ for w in ["学者", "法师", "师", "研究"]):
+            for lid, loc in getattr(self.world, 'locations', {}).items():
+                fog.discover_location(lid, FogState.HEARD_OF)
+
+        # （什么都不加 → 就只知道出生地及周边）
         for fid, fac in getattr(self.world, 'factions', {}).items():
             if hasattr(fac, 'home_location') and fac.home_location == location_id:
                 fog.discover_faction(fid, FogState.HEARD_OF)

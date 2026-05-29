@@ -80,9 +80,54 @@ ACTOR_GEN_SYSTEM_PROMPT = """你是一位世界格局设计师。根据世界观
 """
 
 
+
+ACTION_GEN_PROMPT = """设计该世界观下特有的角色行为类型。返回JSON数组, 每项:{"id":"大写ID","name":"行为名","description":"描述","params":{}}。
+基础行为已有: DIALOGUE, OBSERVE, INNER, WAIT, ACT。
+请补充3-6个该世界特有的。例如: 修仙->CULTIVATE,EXPLORE; 都市->WORK,DRIVE; 西幻->PRAY,HUNT。只返回JSON。"""
+
+WEATHER_GEN_PROMPT = """根据世界观设计天气系统。返回JSON数组, 每项:{"name":"天气名","energy_cost":1.0,"visibility":0.8,"cultivation_bonus":1.0,"description":"..."}。
+至少3个最多8个。只返回JSON。"""
+
+THREAT_GEN_PROMPT = """根据世界观设计毁灭威胁。返回JSON数组, 每项:{"name":"威胁名","description":"...","natural_growth":0.003,"trigger_threshold":0.9,"accelerates_by":["dimension"],"decelerates_by":["dimension"],"effects":{"danger_level":"+50"}}。至少3个最多6个。只返回JSON。"""
+
+EVENT_GEN_PROMPT = """根据世界观设计随机事件。返回JSON数组, 每项:{"type":"disaster/opportunity/faction/celebration","title":"事件名","desc":"描述(用{location}代替地点)","severity":1-5,"duration_days":1-10,"effects":{}}。至少4个最多8个。只返回JSON。"""
+
 class WorldBuilder:
     def __init__(self, llm_client: Optional[LLMClient] = None):
         self.llm = llm_client or LLMClient()
+
+
+    def build_actions(self, world_description: str) -> list:
+        try:
+            d = self.llm.chat_json(ACTION_GEN_PROMPT, world_description[:2000])
+            return d if isinstance(d, list) else []
+        except: return []
+
+    def build_weather(self, world_description: str) -> list:
+        try:
+            d = self.llm.chat_json(WEATHER_GEN_PROMPT, world_description[:2000])
+            return d if isinstance(d, list) else []
+        except: return []
+
+    def build_threats(self, world_description: str) -> list:
+        try:
+            d = self.llm.chat_json(THREAT_GEN_PROMPT, world_description[:2000])
+            return d if isinstance(d, list) else []
+        except: return []
+
+    def build_events(self, world_description: str) -> list:
+        try:
+            d = self.llm.chat_json(EVENT_GEN_PROMPT, world_description[:2000])
+            return d if isinstance(d, list) else []
+        except: return []
+
+    def build_extras(self, world_description: str) -> dict:
+        return {
+            "actions": self.build_actions(world_description),
+            "weather": self.build_weather(world_description),
+            "threats": self.build_threats(world_description),
+            "events": self.build_events(world_description),
+        }
 
     def build(self, world_description: str) -> World:
         """将世界观描述解析为结构化 World 对象"""

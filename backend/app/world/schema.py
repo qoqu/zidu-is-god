@@ -84,6 +84,7 @@ class World:
     timeline: Timeline = field(default_factory=Timeline)
     global_state: dict = field(default_factory=dict)
     items: dict = field(default_factory=dict)
+    extras: dict = field(default_factory=dict)
     beats_since_last_peak: int = 0
 
     # ★★★ 时间推进表

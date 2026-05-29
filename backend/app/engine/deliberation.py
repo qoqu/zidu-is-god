@@ -139,6 +139,17 @@ def make_decision(
 
     full_prompt = "\n".join(char_prompt_parts)
 
+    # 追加本世界特有行为 (如果存在)
+    extras = getattr(world, 'extras', {}) if hasattr(world, 'extras') else {}
+    custom_actions = extras.get('actions', [])
+    if custom_actions:
+        extra = "\n本世界特有行为:"
+        for a in custom_actions:
+            aid = a.get("id", "")
+            desc = a.get("description", "")
+            extra += f"\n- {aid}: {desc}"
+        full_prompt += extra
+
     try:
         decision = llm.chat_json(
             system_prompt=DECISION_SYSTEM_PROMPT,

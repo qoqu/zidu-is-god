@@ -46,6 +46,15 @@ class Config:
     NARRATOR_MODEL = os.environ.get("NARRATOR_MODEL", "")  # 空=用 LLM_MODEL_NAME
     NARRATOR_TEMPERATURE = float(os.environ.get("NARRATOR_TEMPERATURE", "0.5"))
 
+    # 可配置的魔法数字 (v0.5.0+)
+    QUALITY_PASS_THRESHOLD = int(os.environ.get("QUALITY_PASS", "48"))  # 质量门禁及格线
+    TENSION_DANGER_WEIGHT = float(os.environ.get("TENSION_DANGER", "0.3"))  # 张力:危险权重
+    TENSION_EMOTION_WEIGHT = float(os.environ.get("TENSION_EMOTION", "0.25"))  # 张力:情绪权重
+    TENSION_DISTANCE_WEIGHT = float(os.environ.get("TENSION_DISTANCE", "0.12"))  # 张力:距离权重
+    PARALLEL_MAX_LINES = int(os.environ.get("PARALLEL_LINES", 5))  # 最大并行线数
+    BEATS_PER_POV = int(os.environ.get("BEATS_PER_POV", 3))  # POV切换频率
+    BATCH_NARRATE_SIZE = int(os.environ.get("BATCH_NARRATE", 3))  # 叙事批次大小
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []
