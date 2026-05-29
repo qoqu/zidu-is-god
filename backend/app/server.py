@@ -140,5 +140,54 @@ def main():
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 
+# ─── 存档 API ──────────────────────────────────────────
+
+class SaveRequest(BaseModel):
+    world: str = ""
+    chars: list = []
+    chapters: list = []
+    current_chapter: int = 0
+    total_chapters: int = 0
+    filepath: str = "saves/autosave.json"
+
+
+@app.post("/api/save")
+async def save_story_api(req: SaveRequest):
+    """保存故事"""
+    try:
+        from app.persistence import save_story
+        path = save_story(
+            world=req,
+            characters=[],
+            chapters=req.chapters,
+            current_chapter=req.current_chapter,
+            total_chapters=req.total_chapters,
+            filepath=req.filepath,
+        )
+        return {"success": True, "path": path}
+    except Exception as e:
+        raise HTTPException(500, f"保存失败: {e}")
+
+
+@app.get("/api/saves")
+async def list_saves():
+    """列出存档"""
+    from app.persistence import list_saves
+    return {"saves": list_saves()}
+
+
+@app.post("/api/load")
+async def load_story_api(filepath: str = "saves/autosave.json"):
+    """加载故事"""
+    try:
+        from app.persistence import load_story
+        data = load_story(filepath)
+        return {"success": True, "data": data}
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"加载失败: {e}")
+
+
 if __name__ == "__main__":
     main()
