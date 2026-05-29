@@ -76,12 +76,37 @@
   .toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .toolbar .hint { font-size: 11px; color: #555; align-self: center; }
   .demo-label { font-size: 11px; color: #666; margin-right: 4px; align-self: center; }
-.chart-container{background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:12px;margin-top:12px;display:none}.chart-container canvas{width:100%;height:100px;display:block}.quality-bar{display:flex;gap:4px;margin:8px 0;align-items:center}.quality-bar .label{font-size:11px;color:#666;min-width:60px}.quality-bar .track{flex:1;height:6px;background:#222;border-radius:3px;overflow:hidden}.quality-bar .fill{height:100%;border-radius:3px;transition:width .3s}.quality-bar .fill.good{background:linear-gradient(90deg,#4a4,#8c8)}.quality-bar .fill.ok{background:linear-gradient(90deg,#ca4,#ec8)}.quality-bar .fill.bad{background:linear-gradient(90deg,#c44,#e88)}.animate-in{animation:fadeIn .3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}</style>
+.chart-container{background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:12px;margin-top:12px;display:none}.chart-container canvas{width:100%;height:100px;display:block}.quality-bar{display:flex;gap:4px;margin:8px 0;align-items:center}.quality-bar .label{font-size:11px;color:#666;min-width:60px}.quality-bar .track{flex:1;height:6px;background:#222;border-radius:3px;overflow:hidden}.quality-bar .fill{height:100%;border-radius:3px;transition:width .3s}.quality-bar .fill.good{background:linear-gradient(90deg,#4a4,#8c8)}.quality-bar .fill.ok{background:linear-gradient(90deg,#ca4,#ec8)}.quality-bar .fill.bad{background:linear-gradient(90deg,#c44,#e88)}.animate-in{animation:fadeIn .3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .btn-icon { background:none; border:1px solid #444; color:#ccc; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:16px; }
+  .btn-icon:hover { background:#333; color:#e0c080; }
+  .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100; display:flex; align-items:center; justify-content:center; }
+  .modal-content { background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:20px; width:400px; max-height:80vh; overflow-y:auto; }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-header h2 { font-size:16px; color:#e0c080; margin:0; }
+  .modal-input { width:100%; background:#111; border:1px solid #333; border-radius:4px; color:#e0e0e0; padding:8px; font-size:13px; margin-bottom:10px; outline:none; }
+  .modal-input:focus { border-color:#e0c080; }
+  .modal label { font-size:12px; color:#888; display:block; margin-bottom:4px; }
+  .progress-bar { background:#111; border:1px solid #2a2a2a; border-radius:4px; height:24px; margin:10px 0; position:relative; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,#e0c080,#d4a060); transition:width .5s; border-radius:4px; }
+  .progress-text { position:absolute; top:0; left:0; right:0; text-align:center; line-height:24px; font-size:12px; color:#111; font-weight:600; }
+  .chapter-actions { display:flex; gap:6px; margin:8px 0; }
+  .chapter-actions .btn-small { background:#2a2a2a; color:#ccc; border:1px solid #444; border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; }
+  .chapter-actions .btn-small:hover { background:#3a3a3a; }
+  .feedback-input { width:100%; background:#111; border:1px solid #333; border-radius:4px; color:#e0e0e0; padding:6px; font-size:12px; margin:4px 0; outline:none; }
+</style>
 </head>
 <body>
 <div class="header">
-  <h1>创世日记引擎</h1>
-  <p>让角色在模拟的世界中书写自己的故事</p>
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <h1>Novel World Engine</h1>
+      <p>让角色在模拟的世界中书写自己的故事</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-icon" onclick="showSettings()" title="LLM 配置">&#9881;</button>
+      <button class="btn-icon" onclick="showRelationGraph()" title="关系网络">&#9671;</button>
+    </div>
+  </div>
 </div>
 
 <div class="container">
@@ -122,7 +147,7 @@
       <span class="val" id="beatsVal">3</span>
     </div>
 
-    <button class="btn" id="runBtn" onclick="run()">开始模拟</button>
+    <button class="btn" id="runBtn" onclick="runWithProgress()">开始模拟</button>
     <div class="status" id="status"></div>
 
     <div class="toolbar" style="margin-top:10px;">
@@ -300,6 +325,246 @@ async function run() {
     btn.disabled = false;
   }
 }
+
+// ─── LLM 配置 ────────────────────────────────────────────
+function showSettings() {
+  document.getElementById('settingsModal').style.display = 'flex';
+  loadLLMConfig();
+}
+function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+async function loadLLMConfig() {
+  try {
+    const r = await fetch('/api/llm-config');
+    const d = await r.json();
+    document.getElementById('cfgBaseUrl').value = d.base_url || '';
+    document.getElementById('cfgModel').value = d.model || '';
+    document.getElementById('cfgTemp').value = d.temperature || 0.7;
+    document.getElementById('cfgStatus').textContent = d.has_key ? '已配置 API Key' : '未配置 API Key';
+  } catch(e) { document.getElementById('cfgStatus').textContent = '加载失败'; }
+}
+async function saveLLMConfig() {
+  const body = {
+    api_key: document.getElementById('cfgApiKey').value,
+    base_url: document.getElementById('cfgBaseUrl').value,
+    model: document.getElementById('cfgModel').value,
+    temperature: parseFloat(document.getElementById('cfgTemp').value),
+  };
+  try {
+    const r = await fetch('/api/llm-config', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    document.getElementById('cfgStatus').textContent = d.success ? '已保存' : d.message;
+  } catch(e) { document.getElementById('cfgStatus').textContent = '保存失败'; }
+}
+async function testLLMConfig() {
+  document.getElementById('cfgStatus').textContent = '测试中...';
+  try {
+    const r = await fetch('/api/llm-config/test');
+    const d = await r.json();
+    document.getElementById('cfgStatus').textContent = d.success ? '连接成功: ' + d.response : '失败: ' + d.error;
+  } catch(e) { document.getElementById('cfgStatus').textContent = '测试失败: ' + e.message; }
+}
+
+// ─── 关系网络图 ──────────────────────────────────────────
+function showRelationGraph() {
+  document.getElementById('relationModal').style.display = 'flex';
+  drawRelationGraph();
+}
+function closeRelation() { document.getElementById('relationModal').style.display = 'none'; }
+function drawRelationGraph() {
+  const charsText = document.getElementById('chars').value.trim();
+  const chars = charsText.split('\n').map(s => s.trim()).filter(Boolean);
+  if (chars.length < 2) return;
+  // 简单力导向图
+  const canvas = document.getElementById('relationCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,560,400);
+  const cx=280, cy=200, r=150;
+  const angleStep = 2*Math.PI/chars.length;
+  const positions = chars.map((name,i) => ({
+    x: cx + r*Math.cos(i*angleStep - Math.PI/2),
+    y: cy + r*Math.sin(i*angleStep - Math.PI/2),
+    name: name.split(',')[0] || name
+  }));
+  // 边
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  positions.forEach((a,i) => {
+    positions.forEach((b,j) => {
+      if(i<j) { ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    });
+  });
+  // 节点
+  positions.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x,p.y,20,0,2*Math.PI);
+    ctx.fillStyle = '#2a2a4a'; ctx.fill();
+    ctx.strokeStyle = '#e0c080'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#e0e0e0'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(p.name, p.x, p.y+4);
+  });
+}
+
+// ─── 单章重写 ────────────────────────────────────────────
+async function rewriteChapter(chNum) {
+  const fb = document.getElementById('fb_' + chNum);
+  const pace = document.getElementById('pace_' + chNum);
+  const btn = fb.nextElementSibling.nextElementSibling;
+  btn.disabled = true; btn.textContent = '重写中...';
+  try {
+    const body = {
+      world: document.getElementById('world').value,
+      chars: document.getElementById('chars').value.split('\n').map(s=>s.trim()).filter(Boolean),
+      chapter_number: chNum,
+      feedback: fb.value || '没有具体反馈, 自行优化',
+      pacing: pace.value,
+    };
+    const res = await fetch('/api/chapter/rewrite', {
+      method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.success) {
+      const ch = data.chapter;
+      const mark = ch.quality_passed ? '<span class="pass">✅</span>' : '<span class="fail">❌</span>';
+      const chDiv = btn.closest('.chapter-actions').nextElementSibling;
+      chDiv.innerHTML = '<h3>第 ' + ch.number + ' 章 (重写版)</h3>' +
+        '<div class="meta">' + ch.word_count + ' 字 | 质量 ' + ch.quality + '/80 ' + mark + '</div>' +
+        '<div class="text">' + ch.text + '</div>';
+    }
+  } catch(e) { alert('重写失败: ' + e.message); }
+  btn.disabled = false; btn.textContent = '↻ 重写';
+}
+
+// ─── 带进度条的运行 ──────────────────────────────────────
+async function runWithProgress() {
+  // ... existing validation ...
+  const btn = document.getElementById('runBtn');
+  const world = document.getElementById('world').value.trim();
+  const charsText = document.getElementById('chars').value.trim();
+  const chapters = parseInt(document.getElementById('chapters').value);
+  const beats = parseInt(document.getElementById('beats').value);
+  if (!world) { setStatus('请输入世界观设定', 'error'); return; }
+  const chars = charsText.split('\n').map(s => s.trim()).filter(Boolean);
+  if (chars.length < 2) { setStatus('至少需要 2 个角色', 'error'); return; }
+
+  btn.disabled = true;
+  const pb = document.getElementById('progressBar');
+  const pf = document.getElementById('progressFill');
+  const pt = document.getElementById('progressText');
+  pb.style.display = 'block'; pf.style.width = '0%'; pt.textContent = '开始模拟...';
+  document.getElementById('output').innerHTML = '<div class="empty-state">⏳ 生成中...</div>';
+
+  try {
+    const res = await fetch('/api/simulate/progress', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({world, chars, chapters, beats})
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.stage === 'running') {
+              const pct = Math.round((data.current / data.total) * 100);
+              pf.style.width = pct + '%';
+              pt.textContent = data.message;
+            } else if (data.stage === 'done' && data.result) {
+              pf.style.width = '100%';
+              pt.textContent = data.message;
+              displayChapters(data.result.chapters, data.result.total_words, data.result.quality_scores);
+            } else if (data.stage === 'error') {
+              setStatus('❌ ' + data.message, 'error');
+            }
+          } catch(e) {}
+        }
+      }
+    }
+    pb.style.display = 'none';
+    setStatus('', '');
+  } catch(e) {
+    setStatus('❌ ' + e.message, 'error');
+    pb.style.display = 'none';
+  }
+  btn.disabled = false;
+}
+
+// 修改 run() 按钮改为调用 runWithProgress
+function displayChapters(chapters, totalWords, qualityScores) {
+  let html = '';
+  // 质量条
+  let avgQ = Math.round(qualityScores.reduce((a,b)=>a+b,0)/qualityScores.length);
+  let qClass = avgQ >= 60 ? 'good' : (avgQ >= 48 ? 'ok' : 'bad');
+  html += '<div class="quality-bar"><span class="label">平均质量</span>';
+  html += '<div class="track"><div class="fill ' + qClass + '" style="width:' + (avgQ/80*100) + '%"></div></div>';
+  html += '<span style="font-size:11px;color:#888;">' + avgQ + '/80</span></div>';
+  // 各章
+  chapters.forEach(ch => {
+    const mark = ch.quality_passed ? '<span class="pass">✅</span>' : '<span class="fail">❌</span>';
+    html += '<div class="chapter-actions">';
+    html += '<input class="feedback-input" id="fb_' + ch.number + '" placeholder="导演反馈: 冲突不够激烈..." style="flex:1">';
+    html += '<select id="pace_' + ch.number + '" class="btn-small"><option value="normal">正常</option><option value="faster">加快</option><option value="slower">放慢</option></select>';
+    html += '<button class="btn-small" onclick="rewriteChapter(' + ch.number + ')">&#8635; 重写</button>';
+    html += '</div>';
+    html += '<div class="chapter">';
+    html += '<h3>第 ' + ch.number + ' 章</h3>';
+    html += '<div class="meta">' + ch.word_count + ' 字 | 质量 ' + ch.quality + '/80 ' + mark + '</div>';
+    html += '<div class="text">' + ch.text + '</div></div>';
+  });
+  html += '<div style="text-align:center;color:#666;font-size:13px;padding:8px;">共 ' + totalWords + ' 字</div>';
+  document.getElementById('output').innerHTML = html;
+  drawTensionChart(qualityScores);
+}
+
 </script>
+<!-- 设置面板 -->
+<div class="modal" id="settingsModal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>LLM 配置</h2>
+      <button class="btn-icon" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <label>API Key</label>
+      <input type="password" id="cfgApiKey" class="modal-input" placeholder="sk-...">
+      <label>接口地址</label>
+      <input type="text" id="cfgBaseUrl" class="modal-input" placeholder="https://api.openai.com/v1">
+      <label>模型名</label>
+      <input type="text" id="cfgModel" class="modal-input" placeholder="gpt-4o-mini">
+      <label>温度</label>
+      <input type="range" id="cfgTemp" min="0" max="2" step="0.1" value="0.7" style="width:100%">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <button class="btn-secondary" onclick="loadLLMConfig()">读取当前</button>
+        <button class="btn-secondary" onclick="testLLMConfig()">测试连接</button>
+      </div>
+      <div id="cfgStatus" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+      <button class="btn" onclick="saveLLMConfig()">保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 关系网络图 Modal -->
+<div class="modal" id="relationModal" style="display:none">
+  <div class="modal-content" style="width:600px">
+    <div class="modal-header">
+      <h2>角色关系网络</h2>
+      <button class="btn-icon" onclick="closeRelation()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <canvas id="relationCanvas" width="560" height="400"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 进度条 -->
+<div class="progress-bar" id="progressBar" style="display:none">
+  <div class="progress-fill" id="progressFill"></div>
+  <span class="progress-text" id="progressText">初始化...</span>
+</div>
+
 </body>
 </html>
