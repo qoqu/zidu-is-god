@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Zidu is God — CLI 入口
+Novel World Engine — CLI 入口
 
 用法:
   # 从文件运行模拟
@@ -48,7 +48,7 @@ from app.narrator.quality import QualityChecker
 def _build_parser():
     import argparse
     p = argparse.ArgumentParser(
-        prog="zidu-is-god",
+        prog="novel-world-engine",
         description="创世日记引擎 — 让角色在模拟的世界中书写自己的故事",
         epilog="文档: https://github.com/... | 许可证: AGPL-3.0",
     )

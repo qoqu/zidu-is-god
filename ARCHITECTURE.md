@@ -1,4 +1,4 @@
-# Zidu is God — 架构设计文档
+# Novel World Engine — 架构设计文档
 
 ## 一、核心理念
 
@@ -176,10 +176,10 @@ SnapshotManager.save() ──→ 版本化快照 (支持回滚)
 ## 八、目录结构
 
 ```
-zidu-is-god/
+novel-world-engine/
 ├── backend/
 │   ├── app/
-│   │   ├── cli.py              # CLI 入口 (zidu-is-god 命令)
+│   │   ├── cli.py              # CLI 入口 (novel-world-engine 命令)
 │   │   ├── core.py             # 一键 API (simulate())
 │   │   ├── config.py           # 配置
 │   │   ├── world/              # 世界模型

@@ -1,5 +1,5 @@
 [project]
-name = "zidu-is-god"
+name = "novel-world-engine"
 version = "0.1.0"
 description = "创世日记引擎 — 让角色在模拟的世界中书写自己的故事"
 requires-python = ">=3.11"
@@ -16,12 +16,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/qoqu/zidu-is-god"
-Repository = "https://github.com/qoqu/zidu-is-god.git"
+Homepage = "https://github.com/qoqu/novel-world-engine"
+Repository = "https://github.com/qoqu/novel-world-engine.git"
 
 [project.scripts]
-zidu-is-god = "app.cli:main"
-zidu-is-god-server = "app.server:main"
+novel-world-engine = "app.cli:main"
+novel-world-engine-server = "app.server:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

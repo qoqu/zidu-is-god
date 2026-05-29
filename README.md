@@ -1,4 +1,4 @@
-# Zidu is God — 创世日记引擎
+# Novel World Engine — 创世日记引擎
 
 让角色在我们创造的世界中书写自己的故事。
 
@@ -39,7 +39,7 @@ python -m app.cli run --world world.txt --chars chars.txt --chapters 3 --output 
 
 ```bash
 # 启动 Web 服务
-zidu-is-god-server
+novel-world-engine-server
 
 # 然后在浏览器中打开 http://localhost:5001
 ```
@@ -151,7 +151,7 @@ for chap in range(1, 4):
 ## 项目结构
 
 ```
-zidu-is-god/
+novel-world-engine/
 ├── backend/
 │   └── app/
 │       ├── cli.py            # CLI 入口
