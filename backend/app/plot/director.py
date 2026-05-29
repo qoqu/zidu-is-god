@@ -153,6 +153,58 @@ class PlotDirector:
             intensity=int(avg_tension * 10),
         ))
 
+
+
+    def decide_cast_change(self, active_chars: list, dormant_chars: list, chapter: int,
+                            force_recall_pool: list = None) -> dict:
+        """导演决策: 根据剧情需要决定角色进出
+        
+        Returns:
+            {"action": "dismiss"/"recall"/"retire"/"recruit", "char_id": "...", "purpose": "..."}
+            或 {} 表示不做任何操作
+        """
+        # 每 3 章检查一次
+        if chapter % 3 != 0:
+            return {}
+
+        active_count = len(active_chars)
+
+        # 1. 活跃角色过多 (>2) → 让一个配角离开
+        if active_count > 2:
+            for c in reversed(active_chars):
+                if c.role != 'primary' and c.id != active_chars[0].id:
+                    return {"action": "dismiss", "char_id": c.id}
+
+        # 2. 活跃角色太少且有多余的休眠角色 → 召回一个
+        if active_count < 2 and dormant_chars:
+            return {"action": "recall", "char_id": dormant_chars[0].id}
+
+        # 2.5 冲突高潮章节 (每9章) → 可能杀死一个角色
+        if chapter % 9 == 0 and len(active_chars) >= 2:
+            # 选最后一个非主角角色牺牲
+            for c in reversed(active_chars):
+                if c.role != 'primary' and c.id != active_chars[0].id:
+                    return {'action': 'kill', 'char_id': c.id, 'cause': '剧情冲突达到顶点'}
+
+        # 2.6 特殊情况: 已死角色强制召回 (梦境/幻境/复活)
+        if chapter % 15 == 0 and dormant_chars:
+            import random
+            candidate = random.choice(dormant_chars)
+            if candidate:
+                return {'action': 'recall', 'char_id': candidate.id, 'force_recall': True}
+
+        # 3. 进入新篇章 (每 6 章) → 引入新角色
+        if chapter % 6 == 0 and len(active_chars) <= 4:
+            return {"action": "recruit", "purpose": "给故事带来新的冲突或视角"}
+
+        # 4. 休眠角色长期未登场 (12章以上) → 永久退役
+        for c in dormant_chars:
+            exit_ch = getattr(c, '_exit_chapter', 0) or 0
+            if exit_ch > 0 and chapter - exit_ch >= 12:
+                return {"action": "retire", "char_id": c.id}
+
+        return {}
+
     def _adjust_roles(self, chapter_num: int):
         """根据剧情关注度动态调整角色级别"""
         from app.characters.schema import CharacterRole

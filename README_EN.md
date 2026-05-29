@@ -68,6 +68,12 @@ print(result["chapters"][0]["text"])
 | **Save/Load** | Full state persistence, supports story rollback |
 
 
+### v0.7.1
+
+| Feature | Description |
+|---------|-------------|
+| **Plot-driven Lifecycle** | Characters leave at climax, new ones join at chapter breaks. Driven by tension curve, not headcount |
+
 ### v0.7.0
 
 | Feature | Description |

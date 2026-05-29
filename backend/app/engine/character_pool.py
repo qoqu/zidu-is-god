@@ -33,6 +33,7 @@ class CharLifecycle(Enum):
     ACTIVE = "active"       # 活跃 — 在故事中
     DORMANT = "dormant"     # 休眠 — 暂时离开, 可能回归
     RETIRED = "retired"     # 退役 — 故事弧已完成, 不再回归
+    DECEASED = "deceased"  # 死亡 — 剧情死亡, 一般不回归
 
 
 CHAR_GEN_PROMPT = """你是一位小说角色设计师。根据当前故事的发展, 设计一个新角色。
@@ -105,6 +106,17 @@ class CharacterPool:
                     self.exit_chapter[char_id] = at_chapter
                     return
 
+    def mark_deceased(self, char_id: str, at_chapter: int, cause: str = ""):
+        for pool in [self.active_chars, self.dormant_chars]:
+            for ch in pool[:]:
+                if ch.id == char_id:
+                    pool.remove(ch)
+                    self.retired_chars.append(ch)
+                    self.lifecycle[char_id] = CharLifecycle.DECEASED
+                    self.exit_chapter[char_id] = at_chapter
+                    ch._death_cause = cause
+                    return
+
     def mark_retired(self, char_id: str, at_chapter: int):
         """角色故事弧完成, 永久离开"""
         for pool in [self.active_chars, self.dormant_chars]:
@@ -116,14 +128,19 @@ class CharacterPool:
                     self.exit_chapter[char_id] = at_chapter
                     return
 
-    def revive(self, char_id: str) -> bool:
-        """休眠角色回归"""
-        for c in self.dormant_chars[:]:
-            if c.id == char_id:
-                self.dormant_chars.remove(c)
-                self.active_chars.append(c)
-                self.lifecycle[char_id] = CharLifecycle.ACTIVE
-                return True
+    def revive(self, char_id: str, force: bool = False) -> bool:
+        if self.lifecycle.get(char_id) == CharLifecycle.DECEASED and not force:
+            return False
+        pools = [self.dormant_chars]
+        if force:
+            pools.append(self.retired_chars)
+        for pool in pools:
+            for c in pool[:]:
+                if c.id == char_id:
+                    pool.remove(c)
+                    self.active_chars.append(c)
+                    self.lifecycle[char_id] = CharLifecycle.ACTIVE
+                    return True
         return False
 
     def generate_new(self, story_context: str, existing_chars: list,

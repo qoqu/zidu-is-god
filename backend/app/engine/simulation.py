@@ -362,17 +362,30 @@ class Engine:
 
     def _rotate_cast(self):
         pool = self.char_pool
-        if not pool:
+        plot = self.plot_director
+        if not pool or not plot:
             return
         active = pool.get_active()
-        if len(active) > 2:
-            for c in reversed(active):
-                if c.role != 'primary' and c.id != active[0].id:
-                    pool.mark_dormant(c.id, self.current_chapter)
-                    break
-        if self.current_chapter % 6 == 0:
-            context = f"当前第{self.current_chapter}章. 活跃: " + ", ".join(c.name for c in active)
-            new_char = pool.generate_new(context, active)
+
+        # 交给导演决定: 让谁走, 让谁回, 是否引入新人
+        decision = plot.decide_cast_change(active, pool.dormant_chars, self.current_chapter)
+        if not decision:
+            return
+
+        action = decision.get('action', '')
+        if action == 'dismiss' and decision.get('char_id'):
+            pool.mark_dormant(decision['char_id'], self.current_chapter)
+        elif action == 'recall' and decision.get('char_id'):
+            force = decision.get('force_recall', False)
+            pool.revive(decision['char_id'], force=force)
+        elif action == 'kill' and decision.get('char_id'):
+            pool.mark_deceased(decision['char_id'], self.current_chapter,
+                               cause=decision.get('cause', '战斗中牺牲'))
+        elif action == 'retire' and decision.get('char_id'):
+            pool.mark_retired(decision['char_id'], self.current_chapter)
+        elif action == 'recruit':
+            context = f"当前第{self.current_chapter}章. 活跃角色: " + ", ".join(c.name for c in active)
+            new_char = pool.generate_new(context, active, purpose=decision.get('purpose', ''))
             if new_char:
                 we = getattr(self.world, 'world_engine', None)
                 if we and hasattr(we, 'fog'):
