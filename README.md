@@ -166,7 +166,12 @@ for chap in range(1, 4):
 | **一键启动** | start.bat / start.sh, 自动检测 .env |
 | **LLM 重试** | 超时/限流时自动重试, 指数退避 |
 | **并行决策** | 多角色同时决策, 速度提升 2-3 倍 |
-| **角色三级分级** | Primary(完整LLM)/Secondary(精简)/Background(无LLM), 轻松承载 15-20 角色 |
+
+
+## v0.4.0 新特性
+
+| 特性 | 说明 |
+|------|------|
 | **角色三级分级** | Primary(完整LLM)/Secondary(精简)/Background(无LLM), 轻松承载 15-20 角色 |
 
 ## 核心概念

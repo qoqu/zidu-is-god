@@ -61,12 +61,18 @@ print(result["chapters"][0]["text"])
 | **Living World** | Weather, rumors, world actors, random events, doom threats — all evolve independently |
 | **Timeline & Divergence** | Import a novel, build a timeline, insert a new character at any point — the story diverges into an alternate timeline |
 | **Parallel Engine** | Up to 5 simultaneous narrative threads with POV switching |
-| **Character Tiers** | Primary(full LLM) / Secondary(light) / Background(zero LLM) — support 15-20 characters |
 | **6-D Influence** | Characters have independent influence in economic, political, military, knowledge, social, and mystical dimensions |
 | **Quality Gate** | Every chapter is automatically scored across 8 dimensions (80-point system) |
 | **Web UI** | Configure LLM, visualize relationship graphs, rewrite chapters with director feedback, real-time progress bar |
 | **Streaming** | SSE API for real-time chapter generation |
 | **Save/Load** | Full state persistence, supports story rollback |
+
+
+### v0.4.0
+
+| Feature | Description |
+|---------|-------------|
+| **Character Tiers** | Primary(full LLM) / Secondary(light) / Background(zero LLM) — support 15-20 characters |
 
 ### Architecture
 
