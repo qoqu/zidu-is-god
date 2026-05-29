@@ -68,6 +68,12 @@ print(result["chapters"][0]["text"])
 | **Save/Load** | Full state persistence, supports story rollback |
 
 
+### v0.5.0
+
+| Feature | Description |
+|---------|-------------|
+| **World Fog** | Characters only perceive what they know. 60%+ prompt reduction, 2-3x speedup |
+
 ### v0.4.0
 
 | Feature | Description |
