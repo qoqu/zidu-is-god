@@ -16,7 +16,30 @@
 5. **质量内建于引擎** — 质量规则硬编码强制执行
 6. **伏笔/悬念是一等公民**
 
-## 三、架构总览
+## 三、通用时间轴
+
+时间轴是整个引擎的骨架 — 记录从故事开始到结束的每一个节点。
+
+```
+Timeline:
+├─ nodes: [TimelineNode, ...]        # 每个节点对应一章
+│   ├─ chapter / title / summary     # 章节信息
+│   ├─ key_events                    # 关键事件
+│   ├─ chars_present                 # 登场角色
+│   ├─ world_snapshot                # 该章世界状态快照
+│   └─ inserted_chars                # 分歧点插入的新角色
+│
+├─ insert_character(at_chapter)      # 在任意时间点插入角色 → 产生分歧
+├─ diverged_branch()                 # 获取分歧后的分支
+├─ original_branch()                 # 获取原著分支 (分歧点之前)
+└─ context_for(chapter)              # 给 Engine 的前情提要
+```
+
+NovelParser 从一本小说 txt 中解析出 Timeline:
+  小说 → 按章节分割 → LLM 提取每章事件/角色/状态 → 建 Timeline
+  → 用户选分歧点 → 插入新角色 → Engine 模拟分歧分支
+
+## 四、架构总览
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
