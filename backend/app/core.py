@@ -36,6 +36,7 @@ def simulate(
     beats_per_chapter: int = 3,
     model: str = "",
     progress_callback: Optional[Callable] = None,
+    fast_mode: bool = False,
 ) -> dict:
     """
     一键运行叙事模拟
@@ -112,7 +113,7 @@ def simulate(
         beat_logs = engine.run_chapter(director, blueprint)
 
         _cb("narrating", chap - 1, chapters, f"第{chap}章生成文本中...")
-        chapter_text = narrator.narrate_chapter(beat_logs, char_name_map=char_name_map)
+        chapter_text = (narrator.narrate_chapter_batched if fast_mode else narrator.narrate_chapter)(beat_logs, char_name_map=char_name_map)
 
         qr = quality.check(chapter_text, chapter_num=chap)
         result["chapters"].append({

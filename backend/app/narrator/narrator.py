@@ -106,6 +106,30 @@ class Narrator:
         return "\n\n".join(paragraphs)
 
 
+    def narrate_chapter_batched(self, beat_logs: list, char_name_map: dict = None, batch_size: int = 3) -> str:
+        """批量化叙事: batch_size 个 Beat 合并为一次 LLM 调用"""
+        if not beat_logs:
+            return ""
+        paragraphs, running_context = [], ""
+        for i in range(0, len(beat_logs), batch_size):
+            batch = beat_logs[i:i+batch_size]
+            all_events = [ev for log in batch for ev in log.events]
+            if not all_events:
+                continue
+            event_text = self._format_events(all_events, char_name_map or {})
+            if running_context:
+                prompt = f"【前文】\n{running_context[-500:]}\n\n【新事件】\n{event_text}\n\n请根据新事件续写, 不要重复描写场景。保持角色姓名一致。"
+            else:
+                prompt = f"请根据以下事件写出叙事段落:\n\n{event_text}"
+            try:
+                prose = self.llm.chat(NARRATOR_SYSTEM_PROMPT, prompt, temperature=0.5)
+                if prose and len(prose.strip()) > 10:
+                    paragraphs.append(prose.strip())
+                    running_context = (running_context + "\n" + prose)[-1000:]
+            except Exception as e:
+                paragraphs.append(f"[叙事生成失败: {e}]")
+        return "\n\n".join(paragraphs)
+
     def narrate_parallel(self, parallel_engine, char_name_map: dict = None) -> str:
         """将 ParallelEngine 的多条线交织成一章"""
         active = {lid: l for lid, l in parallel_engine.lines.items() if l.is_active}
@@ -129,7 +153,7 @@ class Narrator:
             event_text = "\n".join(lines)
             prompt = f"【前文】\n{context[-400:]}\n\n【新事件】\n{event_text}\n\n请续写，不要重复描写场景。保持角色姓名一致。" if context else f"请根据以下事件写出叙事段落:\n\n{event_text}"
             try:
-                prose = self.llm.chat(self.NARRATOR_SYSTEM_PROMPT, prompt, temperature=0.5)
+                prose = self.llm.chat(NARRATOR_SYSTEM_PROMPT, prompt, temperature=0.5)
                 return prose.strip()
             except:
                 return ""

@@ -45,6 +45,7 @@ class SimulateRequest(BaseModel):
     chapters: int = 3
     beats: int = 3
     direction: str = ""
+    fast_mode: bool = False
 
 class SimulateResponse(BaseModel):
     chapters: list[dict]
@@ -86,6 +87,7 @@ async def simulate(req: SimulateRequest):
             character_descriptions=req.chars,
             chapters=req.chapters,
             beats_per_chapter=req.beats,
+            fast_mode=req.fast_mode,
         )
         return result
     except ValueError as e:

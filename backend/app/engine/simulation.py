@@ -51,6 +51,7 @@ class Engine:
         self.world_engine: Optional[WorldEngine] = None
         self.current_chapter = 0
         self.current_beat = 0
+        self._init_fog()
 
     @property
     def all_characters(self) -> list[Character]:
@@ -342,6 +343,15 @@ class Engine:
         if not loc:
             return self.all_characters
         return [c for c in self.all_characters if c.current_location == location_id]
+
+    def _init_fog(self):
+        world_engine = getattr(self.world, 'world_engine', None)
+        if not world_engine or not hasattr(world_engine, 'fog'):
+            return
+        for char in self.all_characters:
+            world_engine.fog.initialize_char(char.id, char.current_location)
+        if hasattr(world_engine.fog, 'world'):
+            world_engine.fog.world._characters = list(self.characters.values())
 
     def get_events_since_last_checkpoint(self) -> list[NarrativeEvent]:
         events = []
