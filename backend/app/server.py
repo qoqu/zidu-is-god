@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -92,6 +92,43 @@ async def simulate(req: SimulateRequest):
         raise HTTPException(400, str(e))
     except Exception as e:
         raise HTTPException(500, f"模拟失败: {str(e)}")
+
+
+@app.post("/api/simulate/stream")
+async def simulate_stream(req: SimulateRequest):
+    """流式模拟 — SSE 格式返回"""
+    if not req.world.strip():
+        raise HTTPException(400, "世界观不能为空")
+    if len(req.chars) < 2:
+        raise HTTPException(400, "至少需要 2 个角色")
+
+    async def event_stream():
+        try:
+            from app.core import simulate as run_sim
+            result = run_sim(
+                world_description=req.world,
+                character_descriptions=req.chars,
+                chapters=req.chapters,
+                beats_per_chapter=req.beats,
+            )
+            import json
+            data = {
+                "type": "done",
+                "total_words": result["total_words"],
+                "chapters": [
+                    {"number": c["number"], "word_count": c["word_count"],
+                     "quality": c["quality"], "quality_passed": c["quality_passed"],
+                     "text": c["text"]}
+                    for c in result["chapters"]
+                ],
+            }
+            yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+        except ValueError as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'模拟失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # ─── 启动 ─────────────────────────────────────────────────
