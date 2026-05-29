@@ -31,7 +31,6 @@ from app.llm.client import LLMClient
 from app.world.engine import WorldEngine
 from app.engine.parallel import ParallelEngine
 from app.engine.environment import EnvironmentInteraction
-from app.engine.parallel import ParallelEngine
 
 
 class Engine:

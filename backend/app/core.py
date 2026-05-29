@@ -1,4 +1,4 @@
-# Copyright (C) 2026 创世日记引擎 contributors
+# Copyright (C) 2026 Novel World Engine contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -14,14 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-创世日记引擎 — 一键调用接口
-
-对外暴露的最简 API, 用户只需三行代码即可运行:
-    from app.core import simulate
-    result = simulate(world_description, character_descriptions, chapters=3)
+Novel World Engine — 一键调用接口
 """
 
-from typing import Optional
+from typing import Optional, Callable
 from app.config import Config
 from app.llm.client import LLMClient
 from app.world.builder import WorldBuilder
@@ -39,40 +35,36 @@ def simulate(
     chapters: int = 3,
     beats_per_chapter: int = 3,
     model: str = "",
+    progress_callback: Optional[Callable] = None,
 ) -> dict:
     """
     一键运行叙事模拟
 
     Args:
         world_description: 世界观设定文本
-        character_descriptions: 角色设定列表, 每行一个角色
-        chapters: 生成章节数 (默认 3)
-        beats_per_chapter: 每章 Beat 数 (默认 3)
-        model: LLM 模型名 (覆盖 .env 配置)
+        character_descriptions: 角色设定列表
+        chapters: 生成章节数
+        beats_per_chapter: 每章 Beat 数
+        model: LLM 模型名 (覆盖 .env)
+        progress_callback: 进度回调 (stage, current, total, message)
+            stage: 'building_world' | 'generating_chars' | 'running' | 'narrating' | 'done'
 
     Returns:
-        {
-            "chapters": [
-                {"number": 1, "text": "...", "word_count": 1000, "quality": 65, "quality_passed": True},
-                ...
-            ],
-            "total_words": 3000,
-            "quality_scores": [65, 58, 62],
-        }
-
-    Raises:
-        ValueError: 配置错误或输入无效
+        包含 chapters/total_words/quality_scores 的字典
     """
     Config.DEFAULT_BEATS_PER_CHAPTER = beats_per_chapter
 
     errors = Config.validate()
     if errors:
         raise ValueError("LLM_API_KEY 未配置。请创建 .env 文件或设置环境变量。")
-
     if not world_description.strip():
         raise ValueError("世界观描述不能为空")
     if len(character_descriptions) < 2:
         raise ValueError("至少需要 2 个角色")
+
+    def _cb(stage, cur=0, total=0, msg=""):
+        if progress_callback:
+            progress_callback(stage, cur, total, msg)
 
     llm = LLMClient()
     llm.client.timeout = 60
@@ -80,25 +72,28 @@ def simulate(
         llm.model = model
 
     # 构建世界
+    _cb("building_world", 0, 1, "正在解析世界观...")
     world = WorldBuilder(llm).build(world_description)
+
+    _cb("building_world", 1, 1, "世界观构建完成")
 
     # 启动世界引擎
     world.world_engine = WorldEngine(world)
-    
-    # 生成世界行动者 (如果 WorldBuilder 支持)
     try:
         actors = WorldBuilder(llm).build_actors(world_description, world)
         if actors and hasattr(world.world_engine, 'actors'):
             world.world_engine.actors = actors
     except Exception:
-        pass  # 非关键, 跳过
+        pass
 
     # 生成角色
+    _cb("generating_chars", 0, len(character_descriptions), "正在生成角色...")
     chars = CharacterGenerator(llm).generate_batch(character_descriptions)
     first_loc = list(world.locations.keys())[0] if world.locations else ""
     for c in chars:
         c.current_location = first_loc
     char_name_map = {c.id: c.name for c in chars}
+    _cb("generating_chars", len(character_descriptions), len(character_descriptions), "角色生成完成")
 
     # 初始化引擎
     engine = Engine(world, chars, llm)
@@ -108,12 +103,18 @@ def simulate(
 
     result = {"chapters": [], "total_words": 0, "quality_scores": []}
 
+    # 逐章运行
     for chap in range(1, chapters + 1):
+        _cb("running", chap - 1, chapters, f"第{chap}章规划中...")
         blueprint = director.plan_chapter(chap)
-        beat_logs = engine.run_chapter(director, blueprint)
-        chapter_text = narrator.narrate_chapter(beat_logs, char_name_map=char_name_map)
-        qr = quality.check(chapter_text, chapter_num=chap)
 
+        _cb("running", chap - 1, chapters, f"第{chap}章模拟中...")
+        beat_logs = engine.run_chapter(director, blueprint)
+
+        _cb("narrating", chap - 1, chapters, f"第{chap}章生成文本中...")
+        chapter_text = narrator.narrate_chapter(beat_logs, char_name_map=char_name_map)
+
+        qr = quality.check(chapter_text, chapter_num=chap)
         result["chapters"].append({
             "number": chap,
             "text": chapter_text,
@@ -126,5 +127,8 @@ def simulate(
         avg_tension = sum(l.post_tension for l in beat_logs) / max(len(beat_logs), 1)
         director.finish_chapter(chap, avg_tension)
 
+        _cb("running", chap, chapters, f"第{chap}章完成 ({len(chapter_text)}字)")
+
     result["total_words"] = sum(len(c["text"]) for c in result["chapters"])
+    _cb("done", chapters, chapters, f"完成! 共{result['total_words']}字")
     return result

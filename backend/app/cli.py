@@ -95,7 +95,24 @@ DEMO_CHARS = [
 
 # ─── 核心流程 ─────────────────────────────────────────────
 
-def run_with(world_text, char_lines, chapters=3, beats=3, model="", output=""):
+def _progress_callback(stage, cur, total, msg):
+    """CLI 进度显示"""
+    if stage == "building_world":
+        print(f"  🌍 {msg}")
+    elif stage == "generating_chars":
+        print(f"  👤 [{cur}/{total}] {msg}")
+    elif stage == "running":
+        bar = "▓" * cur + "░" * (total - cur)
+        print(f"  📝 [{bar}] {msg}")
+        if cur == total:
+            print()
+    elif stage == "narrating":
+        print(f"  ✍️  {msg}")
+    elif stage == "done":
+        print(f"  ✅ {msg}")
+
+
+def run_with(world_text, char_lines, chapters=3, beats=3, model="", output="", progress_callback=None):
     """核心运行函数 (同时被 CLI 和 Python API 调用)"""
     Config.DEFAULT_BEATS_PER_CHAPTER = beats
 
@@ -164,7 +181,7 @@ def cmd_run(args):
     print(f"📖 创世日记引擎 — 模拟运行")
     print(f"   章节: {args.chapters} × {args.beats} Beat | 角色: {len(char_lines)}")
 
-    result = run_with(world_text, char_lines, args.chapters, args.beats, args.model)
+    result = run_with(world_text, char_lines, args.chapters, args.beats, args.model, args.output, progress_callback=_progress_callback)
     if "error" in result:
         print(result["error"]); sys.exit(1)
 
@@ -186,7 +203,7 @@ def cmd_run(args):
 def cmd_demo(args):
     print("📖 创世日记引擎 — 演示模式")
     print("   使用内置示例: 苍澜学院 × 3角色 × 3章\n")
-    result = run_with(DEMO_WORLD, DEMO_CHARS, chapters=3, beats=3)
+    result = run_with(DEMO_WORLD, DEMO_CHARS, chapters=3, beats=3, progress_callback=_progress_callback)
     if "error" in result:
         print(result["error"])
         print("\n💡 演示模式需要 LLM API, 请先配置 .env 文件")
@@ -223,7 +240,7 @@ def cmd_interactive(args):
         chars.append(line)
 
     print(f"\n📖 开始模拟: {args.chapters}章 × {args.beats} Beat\n")
-    result = run_with(world_text, chars, args.chapters, args.beats)
+    result = run_with(world_text, chars, args.chapters, args.beats, progress_callback=_progress_callback)
     if "error" in result:
         print(result["error"]); return
 
