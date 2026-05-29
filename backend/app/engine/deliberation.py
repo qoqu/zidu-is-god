@@ -68,6 +68,48 @@ DECISION_SYSTEM_PROMPT = f"""你是一位小说角色。根据你的角色设定
 不要输出非 JSON 内容。"""
 
 
+def make_decisions_parallel(
+    chars: list[Character],
+    scene: dict,
+    world,
+    llm: LLMClient,
+    constraints: list[str] = None,
+    recent_events: list[NarrativeEvent] = None,
+    beat_number: int = 0,
+    chapter_number: int = 0,
+) -> list[NarrativeEvent]:
+    """
+    并行决策 — 同时让所有角色做决策
+
+    每个角色的决策是独立的 LLM 调用, 可以并行执行。
+    对 3 个角色可将决策时间从 15s 降到 5s。
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _decide(char):
+        event = make_decision(char, scene, world, llm, constraints, recent_events)
+        event.beat_number = beat_number
+        event.chapter_number = chapter_number
+        event.location = scene.get("location_id", "")
+        return event
+
+    events = []
+    with ThreadPoolExecutor(max_workers=len(chars)) as executor:
+        futures = {executor.submit(_decide, char): char for char in chars}
+        for future in as_completed(futures):
+            try:
+                events.append(future.result())
+            except Exception as e:
+                char = futures[future]
+                events.append(NarrativeEvent(
+                    beat_number=beat_number, chapter_number=chapter_number,
+                    time=scene.get("time", ""), location=scene.get("location_id", ""),
+                    agent_id=char.id, action_type="WAIT",
+                    content="{}", outcome=f"决策失败: {e}", importance=2,
+                ))
+    return events
+
+
 def make_decision(
     char: Character,
     scene: dict,

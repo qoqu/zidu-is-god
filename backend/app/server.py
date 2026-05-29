@@ -25,7 +25,7 @@ from app.core import simulate as run_simulation
 app = FastAPI(
     title="创世日记引擎",
     description="让角色在模拟的世界中书写自己的故事",
-    version="0.2.0",
+    version="0.2.1",
 )
 
 app.add_middleware(

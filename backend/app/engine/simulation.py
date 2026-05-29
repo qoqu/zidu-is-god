@@ -131,18 +131,14 @@ class Engine:
             present_chars=present_chars,
         )
 
-        events = []
         recent_events = self.get_events_since_last_checkpoint()
-        for char in present_chars:
-            event = make_decision(
-                char=char, scene=scene, world=self.world, llm=self.llm,
-                constraints=blueprint.active_risk_constraints,
-                recent_events=recent_events,
-            )
-            event.beat_number = beat_num
-            event.chapter_number = chapter_num
-            event.location = location_id
-            events.append(event)
+        from app.engine.deliberation import make_decisions_parallel
+        events = make_decisions_parallel(
+            chars=present_chars, scene=scene, world=self.world, llm=self.llm,
+            constraints=blueprint.active_risk_constraints,
+            recent_events=recent_events,
+            beat_number=beat_num, chapter_number=chapter_num,
+        )
 
         resolved = resolve_actions(events, self.characters, self.world)
 

@@ -59,6 +59,28 @@ class LLMClient:
         except Exception as e:
             raise LLMError(f"无法初始化 LLM 客户端: {e}")
 
+    def _is_retryable(self, e: Exception) -> bool:
+        """是否可以重试的错误类型"""
+        return isinstance(e, (RateLimitError, APITimeoutError, APIConnectionError,
+                              APIStatusError))
+
+    def _call_with_retry(self, func, *args, max_retries: int = 3, **kwargs):
+        """带指数退避重试的 LLM 调用"""
+        import time
+        last_error = None
+        for attempt in range(max_retries + 1):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                if not self._is_retryable(e):
+                    raise self._handle_error(e)
+                if attempt < max_retries:
+                    delay = (2 ** attempt) + (0.1 * __import__('random').random())
+                    print(f"  ⏳ LLM 调用失败 ({e.__class__.__name__}), {delay:.0f}s 后重试 ({attempt+1}/{max_retries})...")
+                    time.sleep(delay)
+        raise self._handle_error(last_error)
+
     def _handle_error(self, e: Exception) -> LLMError:
         """将 OpenAI SDK 的异常转为友好消息"""
         if isinstance(e, AuthenticationError):
@@ -103,7 +125,7 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
     ) -> str:
-        try:
+        def _call():
             kwargs = {
                 "model": model or self.model,
                 "messages": [
@@ -116,8 +138,7 @@ class LLMClient:
             response = self.client.chat.completions.create(**kwargs)
             content = response.choices[0].message.content
             return content or ""
-        except Exception as e:
-            raise self._handle_error(e)
+        return self._call_with_retry(_call)
 
     def chat_json(
         self,
@@ -126,7 +147,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         model: Optional[str] = None,
     ) -> dict:
-        try:
+        def _call():
             kwargs = {
                 "model": model or self.model,
                 "messages": [
@@ -141,5 +162,4 @@ class LLMClient:
             content = response.choices[0].message.content
             import json
             return json.loads(content or "{}")
-        except Exception as e:
-            raise self._handle_error(e)
+        return self._call_with_retry(_call)
