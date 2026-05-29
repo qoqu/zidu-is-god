@@ -186,7 +186,61 @@ QualityChecker.check() ──→ 80 分评分报告
 SnapshotManager.save() ──→ 版本化快照 (支持回滚)
 ```
 
-## 七、技术栈
+## 七、延伸模块 (v0.2.0+)
+
+### 7.1 通用时间轴 (timeline.py)
+
+每条叙事线都是一条时间轴，可以在任意节点插入新角色产生分歧。
+
+```
+Timeline:
+├─ nodes: [TimelineNode]           # 每章一个节点
+│   ├─ chapter / title / summary   # 章节信息
+│   ├─ key_events                  # 关键事件
+│   ├─ chars_present               # 登场角色
+│   └─ inserted_chars              # 分歧点插入的新角色
+│
+├─ insert_character(at_chapter)    # → 产生分歧分支
+├─ diverged_branch()               # 获取分歧分支
+├─ original_branch()               # 获取原著分支
+└─ context_for(chapter)            # 前情提要
+```
+
+### 7.2 小说解析器 (novel_parser.py)
+
+从一本小说 txt 中提取结构化世界数据，用于同人创作。
+
+```
+输入: 小说 txt → 按章节分割 → LLM 提取
+├─ 世界观 (地点/势力/规则)
+├─ 角色群 (人格/动机/关系/执念)
+└─ 时间轴 (每章事件/角色/状态)
+→ 用户选分歧点 → 插入新角色 → Engine 模拟分歧
+```
+
+### 7.3 状态持久化 (persistence.py)
+
+```
+save_story(world, characters, chapters) → JSON 文件
+load_story(filepath) → 恢复完整故事状态
+list_saves(directory) → 列出所有存档
+```
+
+### 7.4 新 API 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| /api/llm-config | GET/POST | Web 端配置 LLM |
+| /api/llm-config/test | GET | 测试 LLM 连接 |
+| /api/chapter/rewrite | POST | 单章重写 (导演反馈) |
+| /api/simulate/wordcount | POST | 字数控制模拟 |
+| /api/simulate/progress | POST | SSE 进度流 |
+| /api/relations | POST | 关系网络数据 |
+| /api/save | POST | 保存故事 |
+| /api/load | POST | 加载故事 |
+| /api/saves | GET | 存档列表 |
+
+## 八、技术栈
 
 | 层 | 技术 |
 |----|------|
