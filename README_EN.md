@@ -68,6 +68,12 @@ print(result["chapters"][0]["text"])
 | **Save/Load** | Full state persistence, supports story rollback |
 
 
+### v0.7.0
+
+| Feature | Description |
+|---------|-------------|
+| **Character Lifecycle** | Characters leave, new ones appear - cast naturally evolves over long stories |
+
 ### v0.6.0
 
 | Feature | Description |
