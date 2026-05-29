@@ -109,7 +109,26 @@ NovelParser 从一本小说 txt 中解析出 Timeline:
 ## 四、角色模型
 
 ```
+CharacterRole: primary / secondary / background
+
+  primary (主要角色):
+    - 每 Beat 完整 LLM 决策, 完整记忆/情绪/需求/影响力
+    - 有自己的 POV 和高光时刻
+    - 上限 3-5 个
+
+  secondary (次要角色):
+    - 仅跟 primary 同场时调 LLM, 精简感知
+    - 保留关键事件记忆, 不做完整需求计算
+    - PlotDirector 可根据活跃度升级为 primary
+    - 上限 5-10 个
+
+  background (背景角色):
+    - 从不调 LLM, 由 Narrator 自动生成背景行为
+    - 只记录位置/基本状态
+    - 用于填充世界, 数量不限
+
 Character:
+├─ role: primary / secondary / background
 ├─ identity: 年龄/外貌/职业
 ├─ personality: 特质/说话风格/决策偏向
 ├─ motivation: 深层欲望/短期目标/恐惧
