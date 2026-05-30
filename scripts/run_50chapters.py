@@ -9,7 +9,7 @@ from app.core import simulate
 WORLD = open(os.path.join(os.path.dirname(__file__), '..', 'examples', '西幻_光明大陆_世界观.txt'), encoding='utf-8').read()
 CHARS = [l.strip() for l in open(os.path.join(os.path.dirname(__file__), '..', 'examples', '西幻_光明大陆_角色.txt'), encoding='utf-8') if l.strip()]
 
-TOTAL_CHAPTERS = 50
+TOTAL_CHAPTERS = 5
 BEATS = 3
 
 print("=" * 60)
@@ -18,9 +18,19 @@ print(f"模型: deepseek-v4-pro | fast_mode=True")
 print(f"角色: 3 | 每章 {BEATS} Beat")
 print("=" * 60)
 print()
+progress = {"current": 0, "total": TOTAL_CHAPTERS}
 
+def cb(stage, cur, total, msg):
+    progress["current"] = cur
+    progress["total"] = total
+    if stage in ("running", "building_world", "generating_chars"):
+        print(f"  [{cur}/{total}] {msg}")
+        sys.stdout.flush()
+
+print("  [0/50] 正在构建世界... (可能需要30-60秒)")
+sys.stdout.flush()
 start = time.time()
-result = simulate(WORLD, CHARS, chapters=TOTAL_CHAPTERS, beats_per_chapter=BEATS, fast_mode=True)
+result = simulate(WORLD, CHARS, chapters=TOTAL_CHAPTERS, beats_per_chapter=BEATS, fast_mode=True, progress_callback=cb)
 elapsed = time.time() - start
 
 print(f"\n{'='*60}")

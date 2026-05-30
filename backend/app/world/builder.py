@@ -92,6 +92,12 @@ THREAT_GEN_PROMPT = """根据世界观设计毁灭威胁。返回JSON数组, 每
 
 EVENT_GEN_PROMPT = """根据世界观设计随机事件。返回JSON数组, 每项:{"type":"disaster/opportunity/faction/celebration","title":"事件名","desc":"描述(用{location}代替地点)","severity":1-5,"duration_days":1-10,"effects":{}}。至少4个最多8个。只返回JSON。"""
 
+EXPAND_LOCATION_PROMPT = """根据世界观和当前故事进度, 生成一个新地点。\n当前世界: {world_name} {world_desc}\n角色从 {from_location} 向 {direction} 探索, 第 {chapter} 章。\n返回JSON: {"id":"loc_{id}","name":"地点名","description":"描述","importance":1-5,"type":"city/forest/..."}\n只返回JSON。"""
+
+GENERATE_THREAT_PROMPT = """故事进入高潮, 需要设计一个威胁。第{chapter}章, 张力{tension}。\n世界观: {world_desc}\n返回JSON: {"name":"威胁名","description":"...","natural_growth":0.003,"trigger_threshold":0.9,"accelerates_by":[],"decelerates_by":[],"effects":{"danger_level":"+50"}}\n只返回JSON。"""
+
+GENERATE_EVENT_PROMPT = """根据当前世界状态, 生成随机事件。第{chapter}章, 地点{location}。\n世界观: {world_desc}\n返回JSON: {"type":"disaster/opportunity/faction/celebration","title":"事件名","desc":"描述","severity":1-5,"duration_days":1-10,"effects":{}}\n只返回JSON。"""
+
 class WorldBuilder:
     def __init__(self, llm_client: Optional[LLMClient] = None):
         self.llm = llm_client or LLMClient()
@@ -121,12 +127,60 @@ class WorldBuilder:
             return d if isinstance(d, list) else []
         except: return []
 
+    def build_initial(self, world_description: str) -> World:
+        """只生成初始地点+周边, 不生成威胁/事件/Actor"""
+        world = self.build(world_description)
+        # 只保留前3个地点
+        if len(world.locations) > 3:
+            kept = dict(list(world.locations.items())[:3])
+            world.locations = kept
+        world.extras = {"actions": [], "weather": [], "threats": [], "events": []}
+        return world
+
+    def expand_location(self, world, from_id: str, direction: str = "前方", chapter: int = 1) -> str:
+        """角色探索新区域时按需生成"""
+        from_loc = world.locations.get(from_id)
+        from_name = from_loc.name if from_loc else from_id
+        prompt = EXPAND_LOCATION_PROMPT.format(world_name=world.name, world_desc=world.description[:300], from_location=from_name, direction=direction, chapter=chapter)
+        try:
+            d = self.llm.chat_json("生成新地点", prompt)
+            if d and d.get("name"):
+                lid = d.get("id", f"loc_{len(world.locations)+1}")
+                world.locations[lid] = Location(id=lid, name=d["name"], description=d.get("description", ""))
+                return lid
+        except: pass
+        return ""
+
+    def generate_threat(self, world, chapter: int, tension: float = 0.7, chars: list = None) -> dict:
+        """张力达标时按需生成威胁"""
+        existing = world.extras.get("threats", [])
+        prompt = GENERATE_THREAT_PROMPT.format(chapter=chapter, tension=tension, world_desc=world.description[:300])
+        try:
+            d = self.llm.chat_json("生成威胁", prompt)
+            if d and d.get("name"):
+                existing.append(d)
+                return d
+        except: pass
+        return {}
+
+    def generate_event(self, world, chapter: int, location_id: str = "") -> dict:
+        """按需生成随机事件"""
+        loc_name = world.locations.get(location_id, Location(id="", name="")).name if location_id else ""
+        prompt = GENERATE_EVENT_PROMPT.format(chapter=chapter, location=loc_name, world_desc=world.description[:300])
+        try:
+            d = self.llm.chat_json("生成事件", prompt)
+            if d and d.get("title"):
+                world.extras.setdefault("events", []).append(d)
+                return d
+        except: pass
+        return {}
+
     def build_extras(self, world_description: str) -> dict:
         return {
             "actions": self.build_actions(world_description),
             "weather": self.build_weather(world_description),
-            "threats": self.build_threats(world_description),
-            "events": self.build_events(world_description),
+            "threats": [],
+            "events": [],
         }
 
     def build(self, world_description: str) -> World:

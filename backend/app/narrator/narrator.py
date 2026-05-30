@@ -22,6 +22,35 @@ from app.engine.events import NarrativeEvent, BeatLog
 from app.llm.client import LLMClient
 
 
+
+WRITER_PROMPT = """你是一位小说写手。你将收到一章故事的多个片段(每个片段对应一个场景)。
+
+你的任务: 将这些片段重写为连贯的、可读性强的完整小说章节。
+
+要求:
+1. 将多个场景自然地交织在一起, 而不是分段堆砌
+2. 加入环境描写、角色内心活动、对话
+3. 保持角色姓名一致
+4. 控制段落长度, 避免大段独白
+5. 在场景切换时用空行分隔, 但不要标注"场景一"、"场景二"
+6. 总字数控制在 500-1500 字
+7. 让读者能感受到角色的情绪和动机, 而不仅仅是"他做了什么"
+
+原始片段:
+{raw_text}
+
+角色信息:
+{char_info}
+
+角色信息:
+{char_info}
+
+故事背景: {world_context}
+当前时间: {time}
+导演计划: {plan}
+
+请写出这一章:"""
+
 NARRATOR_SYSTEM_PROMPT = """你是一位小说写手。根据给定的叙事事件序列, 写出流畅的小说段落。
 
 规则:
@@ -129,6 +158,36 @@ class Narrator:
             except Exception as e:
                 paragraphs.append(f"[叙事生成失败: {e}]")
         return "\n\n".join(paragraphs)
+
+
+    def rewrite_chapter(self, beat_logs: list, world, chars: list = None, director_plan: dict = None) -> str:
+        if not beat_logs:
+            return ""
+        all_events = [ev for log in beat_logs for ev in log.events]
+        if not all_events:
+            return ""
+        event_text = self._format_events(all_events, {})
+        char_info = ""
+        if chars:
+            profs = []
+            for c in chars:
+                d = getattr(c.motivation, 'deep_desire', '') if hasattr(c, 'motivation') else ''
+                f = getattr(c.motivation, 'fear', '') if hasattr(c, 'motivation') else ''
+                t = ', '.join(getattr(c.personality, 'traits', []) if hasattr(c, 'personality') else [])
+                e = getattr(c.emotional_state, 'mood_label', '平静') if hasattr(c, 'emotional_state') else '平静'
+                profs.append(f"{c.name}: {t} | 动机:{d} | 恐惧:{f} | 情绪:{e}")
+            char_info = chr(10).join(profs)
+        plan = ""
+        if director_plan:
+            plan = f"基调:{director_plan.get('chapter_type','')} 张力:{director_plan.get('target_tension','')} 催化剂:{director_plan.get('catalyst','')}"
+        wi = f"{getattr(world,'name','')} {getattr(world,'description','')[:200]}"
+        ti = getattr(world.timeline, 'current_time', '') if hasattr(world, 'timeline') else ''
+        prompt = WRITER_PROMPT.format(raw_text=event_text[:2000], char_info=char_info[:1000], world_context=wi[:200], time=ti, plan=plan[:200])
+        try:
+            ch = self.llm.chat(NARRATOR_SYSTEM_PROMPT, prompt, temperature=0.6, max_tokens=2000)
+            return ch.strip() if ch else event_text
+        except Exception:
+            return event_text
 
     def narrate_parallel(self, parallel_engine, char_name_map: dict = None) -> str:
         """将 ParallelEngine 的多条线交织成一章"""

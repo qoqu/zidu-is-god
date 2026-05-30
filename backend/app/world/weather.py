@@ -50,6 +50,12 @@ class WeatherSystem:
     }
 
     def __init__(self):
+        self._custom_patterns = []
+
+    def set_custom(self, patterns: list):
+        """使用 LLM 生成的天气数据覆盖默认"""
+        if patterns:
+            self._custom_patterns = patterns
         self.current: str = "晴天"
         self.season: str = "春"
         self.days_in_weather: int = 0

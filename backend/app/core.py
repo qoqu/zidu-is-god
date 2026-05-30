@@ -73,15 +73,17 @@ def simulate(
         llm.model = model
 
     # 构建世界
-    _cb("building_world", 0, 1, "正在解析世界观...")
+    _cb("building_world", 0, 4, "正在解析世界观...")
     world = WorldBuilder(llm).build(world_description)
+    _cb("building_world", 1, 4, "世界观构建完成")
 
-    _cb("building_world", 1, 1, "世界观构建完成")
+    _cb("building_world", 2, 4, "正在生成 Actor...")
 
     # 启动世界引擎
     world.world_engine = WorldEngine(world)
     try:
         actors = WorldBuilder(llm).build_actors(world_description, world)
+        _cb("building_world", 3, 4, "Actor 生成完成")
         if actors and hasattr(world.world_engine, 'actors'):
             world.world_engine.actors = actors
     except Exception:
@@ -114,6 +116,12 @@ def simulate(
 
         _cb("narrating", chap - 1, chapters, f"第{chap}章生成文本中...")
         chapter_text = (narrator.narrate_chapter_batched if fast_mode else narrator.narrate_chapter)(beat_logs, char_name_map=char_name_map)
+        # ★★★ Writer 重写: 将事件日志变为可读的小说
+        if chapter_text and len(chapter_text) > 50:
+            scene = {"time": world.timeline.current_time, "location_name": world.locations.get("loc_001", "") if hasattr(world, "locations") else ""}
+            rewritten = narrator.rewrite_chapter(chapter_text, world, scene)
+            if rewritten and len(rewritten) > len(chapter_text) // 2:
+                chapter_text = rewritten
 
         qr = quality.check(chapter_text, chapter_num=chap)
         result["chapters"].append({
