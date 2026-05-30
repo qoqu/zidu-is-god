@@ -68,12 +68,58 @@ print(result["chapters"][0]["text"])
 | **Save/Load** | Full state persistence, supports story rollback |
 
 
-### v0.7.1
+## Version History
 
-| Feature | Description |
-|---------|-------------|
-| **Plot-driven Lifecycle** | Characters leave at climax, new ones join at chapter breaks. Driven by tension curve, not headcount |
+### v0.8.x — External Memory + Lazy Building
 
+| Version | Features |
+|---------|----------|
+| v0.8.1 | **External Memory**: RAG vector retrieval (SQLite) + FDR progressive compression. 80% prompt token reduction |
+| v0.8.0 | **Lazy World Building**: Store raw text, parse locations on first visit. Startup from 8 to 2 LLM calls |
+
+### v0.7.x — Character Lifecycle
+
+| Version | Features |
+|---------|----------|
+| v0.7.1 | **Plot-driven Cast Changes**: Director decides entrances/exits based on tension curve |
+| v0.7.0 | **CharacterPool**: active/dormant/deceased lifecycle with forced revival |
+
+### v0.6.x — Extensible Actions
+
+| Version | Features |
+|---------|----------|
+| v0.6.0 | Extensible action space, LLM-generated weather/threats/events, 7 configurable params |
+
+### v0.5.x — World Fog
+
+| Version | Features |
+|---------|----------|
+| v0.5.0 | **World Fog**: Characters only perceive what they know. 60%+ prompt reduction |
+
+### v0.4.x — Character Tiers
+
+| Version | Features |
+|---------|----------|
+| v0.4.0 | **3-tier Characters**: Primary/Secondary/Background. Support 15-20 concurrent characters |
+
+### v0.3.x — Web UI
+
+| Version | Features |
+|---------|----------|
+| v0.3.0 | Web LLM config, progress bar, relation graph, chapter rewrite, word count control |
+
+### v0.2.x — Timeline + Parallel
+
+| Version | Features |
+|---------|----------|
+| v0.2.1 | LLM retry (exponential backoff), parallel decisions (ThreadPool) |
+| v0.2.0 | Timeline model, novel parser, divergence mechanism |
+
+### v0.1.x — Initial
+
+| Version | Features |
+|---------|----------|
+| v0.1.0 | 6-layer architecture, CLI + Python API |
 ### v0.7.0
 
 | Feature | Description |
