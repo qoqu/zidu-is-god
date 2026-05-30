@@ -138,11 +138,14 @@ def simulate(
 
         _cb("running", chap, chapters, f"第{chap}章完成 ({len(chapter_text)}字)")
 
-    # FDR 压缩该章
+    # 异步: FDR 压缩 + 其他后处理 (不阻塞下一章)
+    from concurrent.futures import ThreadPoolExecutor
+    executor = ThreadPoolExecutor(max_workers=1)
     try:
-        compressor.add_chapter_summary(chap, chapter_text, llm=llm)
+        executor.submit(compressor.add_chapter_summary, chap, chapter_text, llm, qr.get("total", 0))
     except Exception:
         pass
+    # 不等待 executor 完成, 下一章继续
 
     result["total_words"] = sum(len(c["text"]) for c in result["chapters"])
     _cb("done", chapters, chapters, f"完成! 共{result['total_words']}字")

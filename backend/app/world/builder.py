@@ -128,14 +128,43 @@ class WorldBuilder:
         except: return []
 
     def build_initial(self, world_description: str) -> World:
-        """只生成初始地点+周边, 不生成威胁/事件/Actor"""
-        world = self.build(world_description)
-        # 只保留前3个地点
-        if len(world.locations) > 3:
-            kept = dict(list(world.locations.items())[:3])
-            world.locations = kept
+        """只存原始文本, 首次访问时才解析对应地点"""
+        world = World.create_from_text(world_description) if hasattr(World, 'create_from_text') else World(id='world_001', name='', description=world_description[:200], raw_text=world_description)
+        if not hasattr(world, 'raw_text') or not world.raw_text:
+            world.raw_text = world_description
         world.extras = {"actions": [], "weather": [], "threats": [], "events": []}
+        try:
+            data = self.llm.chat_json(WORLD_BUILD_SYSTEM_PROMPT, world_description[:3000])
+            for loc_data in data.get("locations", [])[:1]:
+                lid = loc_data.get("id", "loc_001")
+                world.locations[lid] = Location(id=lid, name=loc_data.get("name", ""), description=loc_data.get("description", ""))
+            for fac_data in data.get("factions", [])[:1]:
+                fid = fac_data.get("id", "fac_001")
+                world.factions[fid] = Faction(id=fid, name=fac_data.get("name", ""), description=fac_data.get("description", ""))
+            world.name = data.get("name", "未知世界")
+        except Exception:
+            pass
         return world
+
+    def extract_locations(self, world, keywords: list = None) -> list:
+        """从原始文本中提取新地点(按需)"""
+        if not getattr(world, 'raw_text', ''):
+            return []
+        try:
+            data = self.llm.chat_json(WORLD_BUILD_SYSTEM_PROMPT, world.raw_text[:3000])
+            added = []
+            for loc_data in data.get("locations", []):
+                lid = loc_data.get("id", f"loc_{len(world.locations)}")
+                if lid not in world.locations:
+                    world.locations[lid] = Location(id=lid, name=loc_data.get("name", ""), description=loc_data.get("description", ""))
+                    added.append(lid)
+            for fac_data in data.get("factions", []):
+                fid = fac_data.get("id", f"fac_{len(world.factions)}")
+                if fid not in world.factions:
+                    world.factions[fid] = Faction(id=fid, name=fac_data.get("name", ""), description=fac_data.get("description", ""))
+            return added
+        except Exception:
+            return []
 
     def expand_location(self, world, from_id: str, direction: str = "前方", chapter: int = 1) -> str:
         """角色探索新区域时按需生成"""

@@ -85,7 +85,15 @@ class World:
     global_state: dict = field(default_factory=dict)
     items: dict = field(default_factory=dict)
     extras: dict = field(default_factory=dict)
+    raw_text: str = ""
     beats_since_last_peak: int = 0
+
+    @staticmethod
+    def create_from_text(text: str) -> "World":
+        w = World(id="world_001", name="", description=text[:200], raw_text=text)
+        w.timeline = Timeline(current_time="第1天·清晨")
+        w.extras = {"actions": [], "weather": []}
+        return w
 
     # ★★★ 时间推进表
     TIME_MAP = {

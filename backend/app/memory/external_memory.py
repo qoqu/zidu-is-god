@@ -161,9 +161,15 @@ class FDRCompressor:
             json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8'
         )
 
-    def add_chapter_summary(self, chapter: int, text: str, llm=None):
-        """Layer 1: 压缩单章为摘要"""
-        if llm and len(text) > 500:
+    def add_chapter_summary(self, chapter: int, text: str, llm=None, quality: int = 0):
+        "Layer 1: 压缩单章为摘要 — 低质章节用 extractive"
+        if quality < 40 or not llm or len(text) <= 500:
+            paras = text.split("\n\n")
+            if len(paras) >= 3:
+                summary = paras[0][:100] + "..." + paras[-1][:100]
+            else:
+                summary = text[:200]
+        else:
             try:
                 summary = llm.chat(
                     "你是一个小说摘要生成器。",
@@ -172,8 +178,6 @@ class FDRCompressor:
                 )
             except Exception:
                 summary = text[:200]
-        else:
-            summary = text[:200]
 
         data = self._load()
         data["summaries"].append({
