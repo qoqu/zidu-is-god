@@ -127,6 +127,7 @@ class MemorySystem:
     LONG_MAX = 200         # 长期记忆上限
 
     def __init__(self, char_name: str = ""):
+        self._rag = None
         self.char_name = char_name
         # 执念: 角色永远忘不掉的东西, 不受衰减
         self.obsessions: list[dict] = []

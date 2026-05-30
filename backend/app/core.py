@@ -138,6 +138,12 @@ def simulate(
 
         _cb("running", chap, chapters, f"第{chap}章完成 ({len(chapter_text)}字)")
 
+    # FDR 压缩该章
+    try:
+        compressor.add_chapter_summary(chap, chapter_text, llm=llm)
+    except Exception:
+        pass
+
     result["total_words"] = sum(len(c["text"]) for c in result["chapters"])
     _cb("done", chapters, chapters, f"完成! 共{result['total_words']}字")
     return result
