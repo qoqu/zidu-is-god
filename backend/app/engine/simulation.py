@@ -138,28 +138,35 @@ class Engine:
 
         recent_events = self.get_events_since_last_checkpoint()
         
-        # 按角色分级分组
-        primary_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'primary']
-        secondary_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'secondary']
-        background_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'background']
+        # 按场景角色权重分组
+        full_chars = [c for c in present_chars if getattr(c, 'decision_weight', 'light') == 'full']
+        light_chars = [c for c in present_chars if getattr(c, 'decision_weight', 'light') == 'light']
+        reactive_chars = [c for c in present_chars if getattr(c, 'decision_weight', 'light') == 'reactive']
+        none_chars = [c for c in present_chars if getattr(c, 'decision_weight', 'light') == 'none']
+        
+        # 兼容旧角色分级: 没有 decision_weight 则用 role 推断
+        if not full_chars:
+            full_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'primary']
+            light_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'secondary']
+            none_chars = [c for c in present_chars if getattr(c, 'role', 'primary') == 'background']
         
         events = []
         
         # primary: 完整 LLM 决策
-        if primary_chars:
+        if full_chars:
             from app.engine.deliberation import make_decisions_parallel
             events = make_decisions_parallel(
-                chars=primary_chars, scene=scene, world=self.world, llm=self.llm,
+                chars=full_chars, scene=scene, world=self.world, llm=self.llm,
                 constraints=blueprint.active_risk_constraints,
                 recent_events=recent_events,
                 beat_number=beat_num, chapter_number=chapter_num,
             )
         
         # secondary: 简化 LLM 决策 (缩减 prompt)
-        if secondary_chars:
+        if light_chars:
             from app.engine.deliberation import make_decisions_parallel
             sec_events = make_decisions_parallel(
-                chars=secondary_chars, scene=scene, world=self.world, llm=self.llm,
+                chars=light_chars, scene=scene, world=self.world, llm=self.llm,
                 constraints=blueprint.active_risk_constraints + ["(精简回复, 不超过20字)"],
                 recent_events=recent_events,
                 beat_number=beat_num, chapter_number=chapter_num,
@@ -167,7 +174,7 @@ class Engine:
             events.extend(sec_events)
         
         # background: 自动生成默认行为 (不调 LLM)
-        for char in background_chars:
+        for char in none_chars + reactive_chars:
             from app.engine.events import NarrativeEvent
             events.append(NarrativeEvent(
                 beat_number=beat_num, chapter_number=chapter_num,

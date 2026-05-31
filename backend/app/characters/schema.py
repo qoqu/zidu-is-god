@@ -21,6 +21,33 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
+# --- 场景角色与决策权重 ---
+
+class SceneRole:
+    PROTAGONIST = "protagonist"
+    ANTAGONIST = "antagonist"
+    COMPETITOR = "competitor"
+    JUDGE = "judge"
+    ALLY = "ally"
+    AUDIENCE = "audience"
+    SUPPORTING = "supporting"
+    ALL_ROLES = [PROTAGONIST, ANTAGONIST, COMPETITOR, JUDGE, ALLY, AUDIENCE, SUPPORTING]
+
+class DecisionWeight:
+    FULL = "full"
+    LIGHT = "light"
+    REACTIVE = "reactive"
+    NONE = "none"
+    WEIGHT_MAP = {
+        SceneRole.PROTAGONIST: FULL,
+        SceneRole.ANTAGONIST: FULL,
+        SceneRole.COMPETITOR: FULL,
+        SceneRole.JUDGE: LIGHT,
+        SceneRole.ALLY: LIGHT,
+        SceneRole.AUDIENCE: NONE,
+        SceneRole.SUPPORTING: LIGHT,
+    }
+
 # ─── 角色分级 ───────────────────────────────────────────────
 
 class CharacterRole:
@@ -477,6 +504,10 @@ class Character:
         self.emotional_state: EmotionalState = EmotionalState()
         self.stats: CharacterStats = CharacterStats()
         self.role: str = CharacterRole.PRIMARY      # 角色分级
+        self.scene_role: str = ""  # 场景角色
+        self.decision_weight: str = "light"  # 决策权重
+        self.scene_role: str = ""  # 场景角色 (protagonist/antagonist/judge/audience...)
+        self.decision_weight: str = "light"  # 决策权重 (full/light/reactive/none)
         self.current_location: str = ""
         self.current_goals: list = []          # [Goal]
         self.status_effects: list = []         # [StatusEffect]

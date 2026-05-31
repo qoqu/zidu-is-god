@@ -24,6 +24,19 @@ from app.engine.events import NarrativeEvent
 from app.llm.client import LLMClient
 
 
+def _rag_memories(char_id: str, query: str) -> str:
+    try:
+        from app.memory.external_memory import RAGRetriever
+        rag = RAGRetriever()
+        results = rag.search(char_id, query[:200], top_k=3)
+        if results:
+            items = [f"  - {r[1][:100]}" for r in results]
+            return "\\n".join(items)
+    except Exception:
+        pass
+    return ""
+
+
 ACTION_SPACE_DESC = """你可选择的行为类型:
 
 社交类:
@@ -136,6 +149,9 @@ def make_decision(
 
     if constraints:
         char_prompt_parts.append(f"\n【约束】\n" + "\n".join(f"- {c}" for c in constraints))
+    rm = _rag_memories(char.id, perception_text)
+    if rm:
+        char_prompt_parts.append(f"\n【相关记忆】\n{rm}")
 
     full_prompt = "\n".join(char_prompt_parts)
 

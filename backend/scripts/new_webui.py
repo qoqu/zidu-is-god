@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+"""替换旧 index.html 为新 Web UI"""
+p = r'D:\Reasonix\Reasonixworkspace\novel-world-engine\backend\frontend\index.html'
+with open(p, 'w', encoding='utf-8') as f:
+    f.write('''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -97,7 +100,7 @@ function addMsg(role, text){
   const chat = document.getElementById('chat');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.innerHTML = text.replace(/\n/g,'<br>');
+  div.innerHTML = text.replace(/\\n/g,'<br>');
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
@@ -108,7 +111,7 @@ function addOptions(options){
   div.className = 'msg ai';
   div.innerHTML = '<div class="opt" onclick="selectOption(0)">' + options.join('</div><div class="opt" onclick="selectOption(' + options.map((_,i)=>i).join(')">') + ')">' + options.join('</div>');
   // 简化: 直接生成
-  div.innerHTML = options.map((o,i) => '<div class="opt" onclick="send('' + (i+1) + '')">' + (i+1) + '. ' + o + '</div>').join('');
+  div.innerHTML = options.map((o,i) => '<div class="opt" onclick="send(\'' + (i+1) + '\')">' + (i+1) + '. ' + o + '</div>').join('');
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
@@ -175,7 +178,7 @@ function runSimulation(){
     body: JSON.stringify({session_id: sessionId})
   }).then(r=>r.json()).then(data => {
     if(data.error){
-      addMsg('ai', '模拟失败: ' + data.error + (data.warnings ? '\\n' + JSON.stringify(data.warnings) : ''));
+      addMsg('ai', '模拟失败: ' + data.error + (data.warnings ? '\\\\n' + JSON.stringify(data.warnings) : ''));
       return;
     }
     if(data.chapters){
@@ -220,11 +223,11 @@ function updatePanel(){
   if(!sessionId){ panel.innerHTML = '<div style="color:#555;font-size:13px">开始交互后显示</div>'; return; }
   fetch('/api/wb/result/' + sessionId).then(r=>r.json()).then(data => {
     if(data.world_description){
-      document.getElementById('worldBadge').textContent = data.world_description.split('\n')[0] || '世界';
+      document.getElementById('worldBadge').textContent = data.world_description.split('\\n')[0] || '世界';
     }
     let html = '<div style="font-size:12px;color:#888">';
     html += '<b>世界观:</b> ' + (data.world_description || '').substring(0,100) + '</div>';
-    if(data.scene_map) html += '<div style="font-size:12px;color:#888;margin-top:8px"><b>场景:</b><br>' + data.scene_map.replace(/\n/g,'<br>') + '</div>';
+    if(data.scene_map) html += '<div style="font-size:12px;color:#888;margin-top:8px"><b>场景:</b><br>' + data.scene_map.replace(/\\n/g,'<br>') + '</div>';
     if(data.protagonist && data.protagonist.name){
       html += '<div style="margin-top:8px"><b>角色:</b></div>';
       html += '<div class="item">' + data.protagonist.name + ' <span class="tag full">主角</span></div>';
@@ -240,7 +243,8 @@ function updatePanel(){
 }
 
 renderPhases();
-addMsg('ai', '你好! 输入一句话, 我开始和你一起构建世界。\\n例如: "我想写一个修仙世界"');
+addMsg('ai', '你好! 输入一句话, 我开始和你一起构建世界。\\\\n例如: "我想写一个修仙世界"');
 </script>
 </body>
-</html>
+</html>''')
+print('OK Web UI 已更新')

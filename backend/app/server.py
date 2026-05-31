@@ -191,6 +191,186 @@ async def load_story_api(filepath: str = "saves/autosave.json"):
         raise HTTPException(500, f"加载失败: {e}")
 
 
+
+# ─── 交互式世界观构建 API ─────────────────────────────────
+
+from pydantic import BaseModel
+from app.worldbuilding import WorldBuildAgent, SceneDesignAgent, CharacterDesignAgent, SessionState
+
+# 全局会话存储 (生产环境应改用数据库)
+_wb_sessions: dict = {}
+
+class WbStartRequest(BaseModel):
+    stage: str = "world_build"  # world_build / scene_design / character_design
+
+class WbInputRequest(BaseModel):
+    session_id: str
+    text: str = ""
+
+
+@app.post("/api/wb/start")
+async def wb_start(req: WbStartRequest):
+    """开始交互式构建"""
+    import uuid
+    sid = str(uuid.uuid4())[:8]
+    state = SessionState()
+    
+    if req.stage == "scene_design":
+        agent = SceneDesignAgent(state)
+        msg = agent.start()
+    elif req.stage == "character_design":
+        agent = CharacterDesignAgent(state)
+        msg = agent.start()
+    elif req.stage == "direction":
+        from app.worldbuilding.direction_agent import DirectionAgent
+        agent = DirectionAgent(state)
+        msg = agent.start()
+    else:
+        agent = WorldBuildAgent()
+        msg = agent.start()
+    
+    _wb_sessions[sid] = {"agent": agent, "state": state}
+    return {"session_id": sid, "message": msg, "stage": req.stage}
+
+
+@app.post("/api/wb/input")
+async def wb_input(req: WbInputRequest):
+    """发送用户输入, 获取下一步引导"""
+    session = _wb_sessions.get(req.session_id)
+    if not session:
+        return {"error": "会话不存在或已过期"}
+    
+    agent = session["agent"]
+    state = session["state"]
+    
+    msg = agent.handle_input(req.text)
+    done = agent.done
+    
+    return {
+        "session_id": req.session_id,
+        "message": msg,
+        "done": done,
+        "stage": state.stage,
+        "state_summary": {
+            "world_type": state.world_type,
+            "world_name": state.world_name,
+            "scenes": len(state.scenes),
+            "protagonist": state.protagonist.get("name", ""),
+            "supporting": len(state.supporting_chars),
+        },
+    }
+
+
+@app.get("/api/wb/result/{session_id}")
+async def wb_result(session_id: str):
+    """获取构建结果 (World 描述文本)"""
+    session = _wb_sessions.get(session_id)
+    if not session:
+        return {"error": "会话不存在"}
+    state = session["state"]
+    return {
+        "world_description": state.to_world_description(),
+        "scene_map": state.scene_map_text,
+        "protagonist": state.protagonist,
+        "supporting": state.supporting_chars,
+        "antagonist": state.antagonist,
+    }
+
+
+# ─── 场景角色配置 API ──────────────────────────────────────
+
+class CastCheckRequest(BaseModel):
+    scenes: list = []
+    characters: list = []
+
+class CastAssignRequest(BaseModel):
+    scene: str
+    char_name: str
+    scene_role: str = "supporting"
+    weight: str = "light"
+
+
+@app.post("/api/cast/check")
+async def cast_check(req: CastCheckRequest):
+    """检查场景角色配置是否完整"""
+    from app.worldbuilding.scene_cast import check_scene_cast
+    warnings = check_scene_cast(req.scenes, req.characters)
+    return {"warnings": warnings, "complete": len(warnings) == 0}
+
+
+@app.post("/api/cast/suggest")
+async def cast_suggest(req: CastCheckRequest):
+    """为场景推荐角色配置"""
+    from app.worldbuilding.scene_cast import build_scene_cast
+    suggestion = build_scene_cast("", req.characters)
+    return {"suggestion": suggestion}
+
+
+@app.get("/api/scene-roles")
+async def list_scene_roles():
+    """列出可用的场景角色类型"""
+    from app.characters.schema import SceneRole, DecisionWeight
+    return {
+        "roles": SceneRole.ALL_ROLES,
+        "weights": {"full": "完整LLM决策", "light": "精简决策", "reactive": "仅反应", "none": "无LLM"},
+    }
+
+
+# --- 统一运行 + 审阅 API ---
+
+class RunRequest(BaseModel):
+    session_id: str
+
+class ReviewRequest(BaseModel):
+    session_id: str
+    chapter: int = 0
+    feedback: str = ""
+    action: str = "rewrite"  # rewrite / adjust_pacing / adjust_tension
+
+
+@app.post("/api/wb/run")
+async def wb_run(req: RunRequest):
+    """一条龙运行: SessionState → 模拟"""
+    session = _wb_sessions.get(req.session_id)
+    if not session:
+        return {"error": "会话不存在"}
+    
+    state = session["state"]
+    try:
+        from app.worldbuilding.pipeline import run_from_state
+        result = run_from_state(state)
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/review")
+async def review_chapter(req: ReviewRequest):
+    """用户反馈 → 调整 → 重跑"""
+    session = _wb_sessions.get(req.session_id)
+    if not session:
+        return {"error": "会话不存在"}
+    
+    feedback = req.feedback or "没有具体意见"
+    action = req.action
+    
+    if action == "rewrite":
+        # 带反馈重跑该章 — 从 session 中获取原配置
+        from app.worldbuilding.pipeline import build_world, build_characters
+        from app.core import simulate as run_sim
+        state = session["state"]
+        feedback_constraint = f"【用户反馈】第{req.chapter}章: {feedback}"
+        result = run_sim(
+            world_description=state.to_world_description(),
+            character_descriptions=[c.get('name','') for c in [state.protagonist] + state.supporting_chars + ([state.antagonist] if state.antagonist.get('name','') else [])],
+            chapters=req.chapter or 1,
+            beats_per_chapter=3,
+            fast_mode=True,
+        )
+        return {"message": f"已根据反馈重新生成第{req.chapter}章: {feedback}", "chapter": result["chapters"][-1] if result["chapters"] else {}}
+    
+    return {"message": f"收到反馈: {feedback}", "action": action}
+
 if __name__ == "__main__":
     main()
 
