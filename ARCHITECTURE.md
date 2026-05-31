@@ -207,6 +207,40 @@ SnapshotManager.save() ──→ 版本化快照 (支持回滚)
 
 ## 七、延伸模块 (v0.2.0+)
 
+### 7.7 交互式创作 (worldbuilding/, v0.9.0)
+
+四段交互流程, 从一句话到可运行的模拟:
+
+```
+Phase 1: WorldBuildAgent    — 类型→子方向→力量→冲突→命名
+Phase 2: SceneDesignAgent — 只定大区域, 舞台由引擎自动生成   — 场景数→命名→细化→关联
+Phase 3: CharacterDesignAgent — 主角→配角→反派 (含 scene_role + decision_weight)
+Phase 4: DirectionAgent     — 30秒方向设定, 配置 PlotDirector
+```
+
+Pipeline: worldbuilding/pipeline.py 将 SessionState → World + Characters + PlotConfig
+
+### 7.8 多卷循环 (engine/volume_manager.py, v0.9.0)
+
+- VolumeManager: 多卷生命周期管理
+- CrossVolumeHook: 跨卷伏笔 (Vol1种下, Vol3回收)
+- is_volume_ending(): 当前卷接近尾声(80%章节)时自动触发下一卷准备
+- 确保卷间连贯性, 无缝过渡
+
+### 7.9 角色权重 (characters/schema.py, v0.9.0)
+
+```
+SceneRole: protagonist / antagonist / competitor / judge / audience / ally / supporting
+DecisionWeight: full(完整LLM) / light(精简) / reactive(仅反应) / none(无LLM)
+
+Engine 按权重分配 LLM 资源:
+  full  → 主角/反派 → 完整决策
+  light → 裁判/盟友 → 精简
+  none  → 观众 → Narrator 自动生成
+```
+
+## 八、技术栈
+
 ### 7.1 通用时间轴 (timeline.py)
 
 每条叙事线都是一条时间轴，可以在任意节点插入新角色产生分歧。

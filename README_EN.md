@@ -74,6 +74,9 @@ print(result["chapters"][0]["text"])
 
 | Version | Features |
 |---------|----------|
+| **v0.8.3** | **Auto Stage Generation**: Stages emerge from character actions, no pre-design |
+| v0.8.2 | **Interactive Creation**: 4-phase build + Character Weights + Multi-volume + New UI |
+| v0.8.1 | **External Memory**: 4-phase build + Character Weights + Multi-volume + New UI |
 | v0.8.1 | **External Memory**: RAG vector retrieval (SQLite) + FDR progressive compression. 80% prompt token reduction |
 | v0.8.0 | **Lazy World Building**: Store raw text, parse locations on first visit. Startup from 8 to 2 LLM calls |
 

@@ -21,11 +21,12 @@ class SessionState:
     world_summary: str = ""  # 最终产出文本
     direction_text: str = ""  # 方向文本
     direction_params: dict = field(default_factory=dict)  # PlotDirector 配置
+    target_words: int = 20000  # 每卷目标字数
     volume_manager: object = None  # VolumeManager 实例
     current_volume: int = 1
     
     # Scene Design 产出
-    scenes: list = field(default_factory=list)  # [{id, name, desc, npcs, connections, events}]
+    scenes: list = field(default_factory=list)  # [{id, name, stages:[舞台名], connections}]
     scene_map_text: str = ""
     
     # Character Design 产出

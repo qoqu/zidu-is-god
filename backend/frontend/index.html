@@ -2,245 +2,285 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Novel World Engine</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0d0d0d;color:#e0e0e0;font-family:'Segoe UI',sans-serif;display:flex;height:100vh}
+
 /* 侧边栏 */
-.sidebar{width:240px;background:#141414;border-right:1px solid #222;padding:16px;display:flex;flex-direction:column}
-.sidebar h1{font-size:16px;color:#e0c080;margin-bottom:16px}
-.sidebar .phase{font-size:13px;padding:6px 10px;margin:2px 0;border-radius:4px;cursor:pointer;color:#666}
-.sidebar .phase.active{background:#2a2a2a;color:#e0c080}
+.sidebar{width:220px;background:#141414;border-right:1px solid #222;padding:16px;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar h1{font-size:15px;color:#e0c080;margin-bottom:16px}
+.sidebar .phase{font-size:13px;padding:6px 10px;margin:2px 0;border-radius:4px;color:#555}
 .sidebar .phase.done{color:#4a4}
-.sidebar .phase.current{color:#e0c080;font-weight:600}
+.sidebar .phase.active{color:#e0c080;font-weight:600}
+
 /* 主区域 */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.header{padding:12px 20px;border-bottom:1px solid #222;font-size:13px;color:#888;display:flex;gap:12px}
+.header{padding:10px 16px;border-bottom:1px solid #222;display:flex;align-items:center;gap:8px;font-size:12px;color:#888}
+.header .btn{background:#222;border:1px solid #444;color:#ccc;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px}
+.header .btn:hover{background:#333;color:#e0c080}
 .header .badge{background:#2a2a2a;padding:2px 8px;border-radius:3px;font-size:11px;color:#aaa}
+
 /* 聊天区 */
-.chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:80%;padding:10px 14px;border-radius:8px;font-size:14px;line-height:1.6}
+.chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:80%;padding:10px 14px;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap}
 .msg.ai{background:#1a1a2a;align-self:flex-start;border:1px solid #2a2a4a}
 .msg.user{background:#2a2a1a;align-self:flex-end;border:1px solid #4a4a2a}
-.msg .opt{display:block;padding:6px 10px;margin:4px 0;background:#222;border-radius:4px;cursor:pointer;color:#ccc;font-size:13px}
-.msg .opt:hover{background:#333;color:#e0c080}
-/* 输入区 */
-.input-bar{display:flex;padding:12px 20px;border-top:1px solid #222;background:#141414}
+.msg.system{background:#1a1a1a;align-self:center;border:1px solid #333;font-size:12px;color:#888}
+
+/* 输入栏 */
+.input-bar{display:flex;padding:10px 16px;border-top:1px solid #222;background:#141414}
 .input-bar input{flex:1;background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:10px;color:#e0e0e0;font-size:14px;outline:none}
 .input-bar input:focus{border-color:#e0c080}
 .input-bar button{background:#e0c080;color:#111;border:none;border-radius:4px;padding:10px 20px;margin-left:8px;cursor:pointer;font-weight:600}
-.input-bar button:disabled{opacity:.5;cursor:default}
+.input-bar button:disabled{opacity:.5}
+
 /* 右侧面板 */
-.panel{width:320px;border-left:1px solid #222;padding:16px;overflow-y:auto;background:#111}
+.panel{width:300px;border-left:1px solid #222;padding:16px;overflow-y:auto;background:#111;flex-shrink:0}
 .panel h3{font-size:13px;color:#e0c080;margin-bottom:8px}
 .panel .item{padding:6px 8px;margin:3px 0;background:#1a1a1a;border-radius:4px;font-size:12px;color:#aaa}
-.panel .item .tag{display:inline-block;background:#2a2a2a;padding:1px 6px;border-radius:2px;font-size:10px;margin-left:4px}
-.tag.full{background:#2a4a2a;color:#8c8}
-.tag.light{background:#4a4a2a;color:#cc8}
-.tag.none{background:#4a2a2a;color:#c88}
+
+/* 弹窗 */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal-content{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;width:420px;max-height:80vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-header h2{font-size:16px;color:#e0c080;margin:0}
+.modal label{font-size:12px;color:#888;display:block;margin-bottom:4px;margin-top:8px}
+.modal input{width:100%;background:#111;border:1px solid #333;border-radius:4px;color:#e0e0e0;padding:8px;font-size:13px;margin-bottom:6px;outline:none}
+.modal input:focus{border-color:#e0c080}
+.modal .btn{background:#e0c080;color:#111;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;margin-top:8px;width:100%}
+.modal .btn-secondary{background:#2a2a2a;color:#ccc;border:1px solid #444;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12px}
+
+/* 进度条 */
+.progress-bar{background:#111;border:1px solid #2a2a2a;border-radius:4px;height:20px;margin:8px 0;position:relative;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#e0c080,#d4a060);transition:width .5s;border-radius:4px}
 </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-  <h1>✧ Novel World<br>Engine</h1>
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <h1>Novel World Engine</h1>
   <div id="phaseList"></div>
 </div>
 
+<!-- 主区域 -->
 <div class="main">
   <div class="header">
-    <span id="sessionStatus">未开始</span>
+    <span id="sessionStatus">就绪</span>
     <span class="badge" id="worldBadge"></span>
     <span class="badge" id="sceneBadge"></span>
     <span class="badge" id="charBadge"></span>
+    <div style="flex:1"></div>
+    <button class="btn" onclick="showSettings()">⚙ 配置</button>
+    <button class="btn" onclick="showRelationGraph()">🔗 关系</button>
   </div>
   <div class="chat" id="chat"></div>
   <div class="input-bar">
-    <input id="input" placeholder="输入..." onkeydown="if(event.key==='Enter')send()">
+    <input id="input" placeholder="输入..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}">
     <button id="sendBtn" onclick="send()">发送</button>
   </div>
 </div>
 
+<!-- 右侧面板 -->
 <div class="panel" id="panel">
   <h3>状态</h3>
-  <div id="panelContent">
-    <div style="color:#555;font-size:13px">开始交互式构建后显示</div>
+  <div id="panelContent" style="font-size:13px;color:#555">开始交互后显示</div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="modal" id="settingsModal" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-content">
+    <div class="modal-header"><h2>LLM 配置</h2><button class="btn-secondary" onclick="closeSettings()">✕</button></div>
+    <label>API Key</label><input type="password" id="cfgApiKey" placeholder="sk-...">
+    <label>接口地址</label><input type="text" id="cfgBaseUrl" placeholder="https://api.openai.com/v1">
+    <label>模型名</label><input type="text" id="cfgModel" placeholder="qwen3.7-max">
+    <div style="display:flex;gap:8px;margin:8px 0">
+      <button class="btn-secondary" onclick="loadLLMConfig()">读取当前</button>
+      <button class="btn-secondary" onclick="testLLMConfig()">测试连接</button>
+    </div>
+    <div id="cfgStatus" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+    <button class="btn" onclick="saveLLMConfig()">保存配置</button>
   </div>
+</div>
+
+<!-- 关系图弹窗 -->
+<div class="modal" id="relationModal" style="display:none" onclick="if(event.target===this)closeRelation()">
+  <div class="modal-content" style="width:600px">
+    <div class="modal-header"><h2>角色关系网络</h2><button class="btn-secondary" onclick="closeRelation()">✕</button></div>
+    <canvas id="relationCanvas" width="560" height="400" style="width:100%;height:auto"></canvas>
+  </div>
+</div>
+
+<!-- 进度条 -->
+<div class="progress-bar" id="progressBar" style="display:none">
+  <div class="progress-fill" id="progressFill" style="width:0%"></div>
 </div>
 
 <script>
 // ---- 状态 ----
-let sessionId = null;
-let currentStage = '';
-let phases = [
+let sessionId = null, currentStage = '';
+const phases = [
   {id:'world_build', label:'世界观', done:false},
   {id:'scene_design', label:'场景设计', done:false},
   {id:'character_design', label:'角色设计', done:false},
   {id:'direction', label:'方向设定', done:false},
-  {id:'run', label:'运行模拟', done:false},
-  {id:'review', label:'审阅', done:false},
+  {id:'run', label:'运行', done:false},
+  {id:'review', label:'审阅', done:false}
 ];
 
-// ---- 阶段列表 ----
 function renderPhases(){
-  const el = document.getElementById('phaseList');
-  el.innerHTML = phases.map((p,i) => 
-    '<div class="phase ' + (p.done?'done':'') + (i===0?' active':'') + '">'
-    + (p.done?'✅ ':'○ ') + p.label + '</div>'
+  document.getElementById('phaseList').innerHTML = phases.map(p =>
+    '<div class="phase ' + (p.done?'done':'') + '">' + (p.done?'✅ ':'○ ') + p.label + '</div>'
   ).join('');
 }
 renderPhases();
 
-// ---- 消息 ----
 function addMsg(role, text){
   const chat = document.getElementById('chat');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.innerHTML = text.replace(/\n/g,'<br>');
+  div.textContent = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-function addOptions(options){
-  const chat = document.getElementById('chat');
-  const div = document.createElement('div');
-  div.className = 'msg ai';
-  div.innerHTML = '<div class="opt" onclick="selectOption(0)">' + options.join('</div><div class="opt" onclick="selectOption(' + options.map((_,i)=>i).join(')">') + ')">' + options.join('</div>');
-  // 简化: 直接生成
-  div.innerHTML = options.map((o,i) => '<div class="opt" onclick="send('' + (i+1) + '')">' + (i+1) + '. ' + o + '</div>').join('');
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+function setStatus(text){
+  document.getElementById('sessionStatus').textContent = text;
 }
 
 // ---- 交互 ----
-function send(text){
+function send(){
   const input = document.getElementById('input');
   const btn = document.getElementById('sendBtn');
-  const msg = text || input.value.trim();
-  if(!msg) return;
-  input.value = '';
-  
-  addMsg('user', msg);
-  btn.disabled = true;
-  
-  if(!sessionId){
-    // 开始新的会话
-    fetch('/api/wb/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({stage: currentStage || 'world_build'})
-    }).then(r=>r.json()).then(data => {
-      sessionId = data.session_id;
-      currentStage = data.stage || 'world_build';
-      addMsg('ai', data.message);
-      btn.disabled = false;
-      updatePanel();
-    }).catch(e => { addMsg('ai', '连接失败: ' + e.message); btn.disabled = false; });
-    return;
-  }
-  
-  fetch('/api/wb/input', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({session_id: sessionId, text: msg})
-  }).then(r=>r.json()).then(data => {
-    if(data.message) addMsg('ai', data.message);
-    if(data.done){
-      // 标记当前阶段完成, 进入下一阶段
-      const idx = phases.findIndex(p => p.id === (currentStage || 'world_build'));
-      if(idx >= 0) phases[idx].done = true;
-      renderPhases();
-      // 自动进入下一阶段
-      const next = {world_build:'scene_design', scene_design:'character_design', character_design:'direction', direction:'run'}[currentStage];
-      if(next && next !== 'run'){
-        currentStage = next;
-        sessionId = null; // 新阶段需要新会话
-        addMsg('ai', '进入下一阶段: ' + (phases.find(p=>p.id===next)?.label || next));
-      } else if(next === 'run'){
-        // 自动运行
-        runSimulation();
-      }
-    }
-    updatePanel();
-    btn.disabled = false;
-  }).catch(e => { addMsg('ai', '错误: ' + e.message); btn.disabled = false; });
-}
-
-// ---- 运行模拟 ----
-function runSimulation(){
-  if(!sessionId){ addMsg('ai', '没有可运行的会话'); return; }
-  addMsg('ai', '开始模拟...');
-  
-  fetch('/api/wb/run', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({session_id: sessionId})
-  }).then(r=>r.json()).then(data => {
-    if(data.error){
-      addMsg('ai', '模拟失败: ' + data.error + (data.warnings ? '\\n' + JSON.stringify(data.warnings) : ''));
-      return;
-    }
-    if(data.chapters){
-      addMsg('ai', '✅ 完成! 共' + data.total_words + '字');
-      data.chapters.forEach(ch => {
-        addMsg('ai', '<b>第' + ch.number + '章</b> (' + ch.word_count + '字, ' + ch.quality + '/80)<br>' + ch.text.substring(0,200) + '...');
-      });
-      // 进入审阅阶段
-      currentStage = 'review';
-      const idx = phases.findIndex(p => p.id === 'run');
-      if(idx >= 0) phases[idx].done = true;
-      renderPhases();
-      addMsg('ai', '可以对某一章提修改意见。例: "第3章节奏太慢了, 加快"');
-    }
-    updatePanel();
-  }).catch(e => addMsg('ai', '错误: ' + e.message));
-}
-
-// ---- 审阅 ----
-function sendReview(){
-  const input = document.getElementById('input');
   const msg = input.value.trim();
   if(!msg) return;
   input.value = '';
   addMsg('user', msg);
-  
-  // 解析章节号
-  const match = msg.match(/第(\d+)章?/);
-  const chapter = match ? parseInt(match[1]) : 1;
-  
-  fetch('/api/review', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({session_id: sessionId, chapter, feedback: msg, action: 'rewrite'})
-  }).then(r=>r.json()).then(data => {
-    addMsg('ai', data.message || '已处理');
-  }).catch(e => addMsg('ai', '错误: ' + e.message));
+  btn.disabled = true;
+
+  if(!sessionId){
+    fetch('/api/wb/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stage:currentStage||'world_build'})})
+    .then(r=>r.json()).then(data=>{
+      sessionId = data.session_id;
+      currentStage = data.stage;
+      addMsg('ai', data.message);
+      btn.disabled = false;
+      updatePanel();
+    }).catch(e=>{addMsg('ai','连接失败: '+e.message); btn.disabled=false;});
+    return;
+  }
+
+  fetch('/api/wb/input', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_id:sessionId, text:msg})})
+  .then(r=>r.json()).then(data=>{
+    if(data.message) addMsg('ai', data.message);
+    if(data.done){
+      const i = phases.findIndex(p=>p.id===(currentStage||'world_build'));
+      if(i>=0) phases[i].done = true;
+      renderPhases();
+      const next = {world_build:'scene_design', scene_design:'character_design', character_design:'direction', direction:'run'}[currentStage];
+      if(next && next!=='run'){ currentStage = next; sessionId = null; addMsg('system', '进入下一阶段: ' + (phases.find(p=>p.id===next)?.label||next)); }
+      else if(next==='run') runSimulation();
+    }
+    updatePanel();
+    btn.disabled = false;
+  }).catch(e=>{addMsg('ai','错误: '+e.message); btn.disabled=false;});
 }
 
-// ---- 面板更新 ----
-function updatePanel(){
-  const panel = document.getElementById('panelContent');
-  if(!sessionId){ panel.innerHTML = '<div style="color:#555;font-size:13px">开始交互后显示</div>'; return; }
-  fetch('/api/wb/result/' + sessionId).then(r=>r.json()).then(data => {
-    if(data.world_description){
-      document.getElementById('worldBadge').textContent = data.world_description.split('\n')[0] || '世界';
-    }
-    let html = '<div style="font-size:12px;color:#888">';
-    html += '<b>世界观:</b> ' + (data.world_description || '').substring(0,100) + '</div>';
-    if(data.scene_map) html += '<div style="font-size:12px;color:#888;margin-top:8px"><b>场景:</b><br>' + data.scene_map.replace(/\n/g,'<br>') + '</div>';
-    if(data.protagonist && data.protagonist.name){
-      html += '<div style="margin-top:8px"><b>角色:</b></div>';
-      html += '<div class="item">' + data.protagonist.name + ' <span class="tag full">主角</span></div>';
-      if(data.supporting) data.supporting.forEach(c => {
-        html += '<div class="item">' + c.name + ' <span class="tag ' + (c.weight||'light') + '">' + (c.scene_role||'配角') + '</span></div>';
+// ---- 配置 ----
+function showSettings(){ document.getElementById('settingsModal').style.display='flex'; loadLLMConfig(); }
+function closeSettings(){ document.getElementById('settingsModal').style.display='none'; }
+
+async function loadLLMConfig(){
+  try{
+    const r=await fetch('/api/llm-config'); const d=await r.json();
+    document.getElementById('cfgBaseUrl').value=d.base_url||'';
+    document.getElementById('cfgModel').value=d.model||'';
+    document.getElementById('cfgStatus').textContent=d.has_key?'已配置':'未配置';
+  }catch(e){ document.getElementById('cfgStatus').textContent='加载失败'; }
+}
+
+async function saveLLMConfig(){
+  try{
+    const r=await fetch('/api/llm-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      api_key:document.getElementById('cfgApiKey').value,
+      base_url:document.getElementById('cfgBaseUrl').value,
+      model:document.getElementById('cfgModel').value
+    })});
+    const d=await r.json();
+    document.getElementById('cfgStatus').textContent=d.success?'已保存':d.message;
+  }catch(e){ document.getElementById('cfgStatus').textContent='保存失败'; }
+}
+
+async function testLLMConfig(){
+  document.getElementById('cfgStatus').textContent='测试中...';
+  try{
+    const r=await fetch('/api/llm-config/test'); const d=await r.json();
+    document.getElementById('cfgStatus').textContent=d.success?'连接成功: '+d.response:'失败: '+d.error;
+  }catch(e){ document.getElementById('cfgStatus').textContent='测试失败: '+e.message; }
+}
+
+// ---- 关系图 ----
+function showRelationGraph(){ document.getElementById('relationModal').style.display='flex'; drawRelationGraph(); }
+function closeRelation(){ document.getElementById('relationModal').style.display='none'; }
+
+function drawRelationGraph(){
+  const canvas=document.getElementById('relationCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,560,400);
+  ctx.fillStyle='#555'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('角色关系图将在模拟后显示',280,200);
+}
+
+// ---- 运行 ----
+async function runSimulation(){
+  if(!sessionId){ addMsg('ai','没有可运行的会话'); return; }
+  addMsg('system','开始模拟...');
+  const pb=document.getElementById('progressBar'), pf=document.getElementById('progressFill');
+  pb.style.display='block'; pf.style.width='0%';
+  try{
+    const r=await fetch('/api/wb/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});
+    const data=await r.json();
+    if(data.error){ addMsg('ai','模拟失败: '+data.error); pb.style.display='none'; return; }
+    if(data.chapters){
+      addMsg('system','完成! 共'+data.total_words+'字');
+      data.chapters.forEach(ch=>{
+        addMsg('ai','第'+ch.number+'章 ('+ch.word_count+'字, '+ch.quality+'/80)\n'+ch.text.substring(0,300)+'...');
       });
-      if(data.antagonist && data.antagonist.name){
-        html += '<div class="item">' + data.antagonist.name + ' <span class="tag full">反派</span></div>';
-      }
+      const i=phases.findIndex(p=>p.id==='run');
+      if(i>=0) phases[i].done=true; renderPhases();
+      addMsg('system','可以对某一章提修改意见');
     }
-    panel.innerHTML = html;
-  }).catch(()=>{});
+    pb.style.display='none';
+    updatePanel();
+  }catch(e){ addMsg('ai','错误: '+e.message); pb.style.display='none'; }
+}
+
+// ---- 面板 ----
+async function updatePanel(){
+  if(!sessionId) return;
+  try{
+    const r=await fetch('/api/wb/result/'+sessionId); const data=await r.json();
+    if(data.world_description){
+      const firstLine=data.world_description.split('\n')[0]||'';
+      document.getElementById('worldBadge').textContent=firstLine.substring(0,20);
+    }
+    let html='<div style="font-size:12px;color:#888">';
+    if(data.world_description) html+='<b>世界观:</b> '+data.world_description.substring(0,100);
+    html+='</div>';
+    if(data.protagonist&&data.protagonist.name){
+      html+='<div style="margin-top:8px"><b>角色:</b></div>';
+      html+='<div class="item">'+data.protagonist.name+' (主角)</div>';
+      if(data.supporting) data.supporting.forEach(c=>{html+='<div class="item">'+c.name+' ('+(c.scene_role||'配角')+')</div>';});
+      if(data.antagonist&&data.antagonist.name) html+='<div class="item">'+data.antagonist.name+' (反派)</div>';
+    }
+    document.getElementById('panelContent').innerHTML=html;
+  }catch(e){}
 }
 
 renderPhases();
-addMsg('ai', '你好! 输入一句话, 我开始和你一起构建世界。\\n例如: "我想写一个修仙世界"');
+addMsg('ai', '你好! 输入一句话开始构建世界。\n例如: "我想写一个修仙世界"');
 </script>
 </body>
 </html>

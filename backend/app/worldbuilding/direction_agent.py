@@ -121,7 +121,7 @@ class DirectionAgent:
     def get_director_config(self) -> dict:
         """获取 PlotDirector 配置参数"""
         return {
-            "target_chapters": 6,
+            "target_chapters": 10,
             "tension_profile": "normal",
             "catalyst_frequency": 2,
         }
